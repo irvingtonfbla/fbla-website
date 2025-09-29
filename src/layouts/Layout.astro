@@ -1,22 +1,597 @@
+---
+export interface Props {
+	title?: string;
+	description?: string;
+}
+
+const { title = "FBLA Chapter", description = "Future Business Leaders of America Chapter Website" } = Astro.props;
+// Updated header layout with responsive navigation
+---
+
 <!doctype html>
 <html lang="en">
 	<head>
 		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.1" />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<meta name="generator" content={Astro.generator} />
-		<title>Astro Basics</title>
+		<meta name="description" content={description} />
+		<title>{title}</title>
 	</head>
 	<body>
-		<slot />
+		<header class="header">
+			<nav class="nav" role="navigation" aria-label="Main navigation">
+				<div class="nav-container">
+					<div class="nav-brand">
+						<a href="/" class="nav-logo" aria-label="FBLA Chapter Home">
+							<img src="/logo.png" alt="FBLA Logo" class="logo-img" />
+						</a>
+					</div>
+					<button 
+						class="nav-toggle" 
+						id="nav-toggle"
+						aria-label="Toggle navigation menu"
+						aria-expanded="false"
+						aria-controls="nav-menu"
+					>
+						<span class="hamburger"></span>
+						<span class="hamburger"></span>
+						<span class="hamburger"></span>
+					</button>
+					<ul class="nav-menu" id="nav-menu" role="menubar">
+						<li role="none"><a href="/" role="menuitem" tabindex="0">Home</a></li>
+						<li role="none"><a href="/officer-team" role="menuitem" tabindex="0">Team</a></li>
+						<li role="none"><a href="/success" role="menuitem" tabindex="0">Success</a></li>
+						<li role="none" class="dropdown">
+							<a href="#" role="menuitem" tabindex="0" class="dropdown-toggle" aria-haspopup="true" aria-expanded="false">
+								Pathways
+								<span class="dropdown-arrow">▼</span>
+							</a>
+							<ul class="dropdown-menu" role="menu">
+								<li role="none"><a href="/pathways/cte" role="menuitem" tabindex="0">CTE</a></li>
+								<li role="none"><a href="/pathways/loop" role="menuitem" tabindex="0">LOOP</a></li>
+							</ul>
+						</li>
+						<li role="none"><a href="/gallery" role="menuitem" tabindex="0">Gallery</a></li>
+						<li role="none"><a href="/competitive-resources" role="menuitem" tabindex="0">Resources</a></li>
+						<li role="none"><a href="/faq" role="menuitem" tabindex="0">FAQ</a></li>
+						<li role="none"><a href="/contact" role="menuitem" tabindex="0">Contact</a></li>
+					</ul>
+				</div>
+			</nav>
+		</header>
+		<main>
+			<slot />
+		</main>
+		<footer class="footer">
+			<div class="footer-container">
+				<div class="footer-content">
+					<div class="footer-section logo-section">
+						<div class="footer-logo">
+							<img src="/logo.png" alt="FBLA Logo" class="footer-logo-img">
+						</div>
+					</div>
+					<div class="footer-section contact-section">
+						<h3>Contact Info</h3>
+						<p>Email: irvingtonfbla@gmail.com</p>
+						<p>Irvington High School<br>
+						41800 Blacow Road<br>
+						Fremont, CA 94538</p>
+					</div>
+					<div class="footer-section social-section">
+						<h3>Follow Us</h3>
+						<div class="social-links">
+							<a href="https://www.instagram.com/irvingtonfbla?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" target="_blank" rel="noopener noreferrer" class="instagram-link">
+								<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+									<path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.40z"/>
+								</svg>
+								@irvingtonfbla
+							</a>
+							<a href="https://www.facebook.com/groups/irvingtonfbla" target="_blank" rel="noopener noreferrer" class="facebook-link">
+								<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+									<path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+								</svg>
+								Irvington FBLA
+							</a>
+						</div>
+					</div>
+				</div>
+				<div class="footer-bottom">
+					<p>&copy; 2024 Irvington FBLA Chapter. All rights reserved.</p>
+				</div>
+			</div>
+		</footer>
+		<script>
+			// Mobile navigation toggle
+			const navToggle = document.getElementById('nav-toggle');
+			const navMenu = document.getElementById('nav-menu');
+
+			function toggleNav() {
+				const isOpen = navToggle.classList.contains('active');
+				
+				navToggle.classList.toggle('active');
+				navMenu.classList.toggle('active');
+				
+				// Update aria-expanded
+				navToggle.setAttribute('aria-expanded', !isOpen);
+				
+				// Manage focus
+				if (!isOpen) {
+					// Menu is opening - focus first menu item
+					setTimeout(() => {
+						const firstMenuItem = navMenu.querySelector('a');
+						if (firstMenuItem) firstMenuItem.focus();
+					}, 100);
+				}
+			}
+
+			function closeNav() {
+				navToggle.classList.remove('active');
+				navMenu.classList.remove('active');
+				navToggle.setAttribute('aria-expanded', 'false');
+			}
+
+			// Toggle navigation on button click
+			navToggle.addEventListener('click', toggleNav);
+
+			// Close navigation on escape key
+			document.addEventListener('keydown', (e) => {
+				if (e.key === 'Escape' && navMenu.classList.contains('active')) {
+					closeNav();
+					navToggle.focus();
+				}
+			});
+
+			// Close navigation when clicking outside
+			document.addEventListener('click', (e) => {
+				if (!navToggle.contains(e.target) && !navMenu.contains(e.target)) {
+					closeNav();
+				}
+			});
+
+			// Handle keyboard navigation in menu
+			navMenu.addEventListener('keydown', (e) => {
+				const menuItems = Array.from(navMenu.querySelectorAll('a'));
+				const currentIndex = menuItems.indexOf(document.activeElement);
+
+				if (e.key === 'ArrowDown') {
+					e.preventDefault();
+					const nextIndex = (currentIndex + 1) % menuItems.length;
+					menuItems[nextIndex].focus();
+				} else if (e.key === 'ArrowUp') {
+					e.preventDefault();
+					const prevIndex = currentIndex === 0 ? menuItems.length - 1 : currentIndex - 1;
+					menuItems[prevIndex].focus();
+				} else if (e.key === 'Home') {
+					e.preventDefault();
+					menuItems[0].focus();
+				} else if (e.key === 'End') {
+					e.preventDefault();
+					menuItems[menuItems.length - 1].focus();
+				}
+			});
+
+			// Close mobile menu on window resize to desktop
+			window.addEventListener('resize', () => {
+				if (window.innerWidth > 768) {
+					closeNav();
+				}
+			});
+		</script>
 	</body>
 </html>
 
 <style>
-	html,
-	body {
+	* {
 		margin: 0;
-		width: 100%;
-		height: 100%;
+		padding: 0;
+		box-sizing: border-box;
+	}
+
+	body {
+		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+		line-height: 1.6;
+		color: #333;
+	}
+
+	.header {
+		background: #1e3a8a;
+		color: white;
+		position: sticky;
+		top: 0;
+		z-index: 1000;
+		box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+	}
+
+	.nav-container {
+		max-width: 1200px;
+		margin: 0 auto;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 1rem 2rem;
+		position: relative;
+		height: 92px;
+		overflow: visible;
+	}
+
+	.nav-brand {
+		flex: 0 0 auto;
+	}
+
+	.nav-logo {
+		font-size: 1.8rem;
+		font-weight: bold;
+		color: white;
+		text-decoration: none;
+		transition: color 0.3s ease;
+		display: flex;
+		align-items: center;
+		border-radius: 4px;
+		padding: 0.5rem;
+	}
+
+	.logo-img {
+		height: 50px;
+		width: auto;
+		border-radius: 4px;
+	}
+
+	.nav-logo:hover,
+	.nav-logo:focus {
+		color: #60a5fa;
+		outline: 2px solid #60a5fa;
+		outline-offset: 2px;
+	}
+
+	.nav-toggle {
+		display: none;
+		flex-direction: column;
+		background: none;
+		border: none;
+		cursor: pointer;
+		padding: 0.5rem;
+		border-radius: 4px;
+		transition: background-color 0.3s ease;
+	}
+
+	.nav-toggle:hover,
+	.nav-toggle:focus {
+		background-color: rgba(255,255,255,0.1);
+		outline: 2px solid #60a5fa;
+		outline-offset: 2px;
+	}
+
+	.hamburger {
+		width: 25px;
+		height: 3px;
+		background-color: white;
+		margin: 3px 0;
+		transition: 0.3s;
+		border-radius: 2px;
+	}
+
+	.nav-toggle.active .hamburger:nth-child(1) {
+		transform: rotate(-45deg) translate(-5px, 6px);
+	}
+
+	.nav-toggle.active .hamburger:nth-child(2) {
+		opacity: 0;
+	}
+
+	.nav-toggle.active .hamburger:nth-child(3) {
+		transform: rotate(45deg) translate(-5px, -6px);
+	}
+
+	.nav-menu {
+		display: flex;
+		list-style: none;
+		gap: 1.5rem;
+		margin: 0;
+		padding: 0;
+		align-items: center;
+	}
+
+	.nav-menu li {
+		display: flex;
+		align-items: center;
+	}
+
+	.nav-menu a {
+		color: white;
+		text-decoration: none;
+		padding: 0.75rem 1rem;
+		border-radius: 6px;
+		transition: all 0.3s ease;
+		font-weight: 500;
+		position: relative;
+	}
+
+	.nav-menu a::after {
+		content: '';
+		position: absolute;
+		bottom: 0.5rem;
+		left: 1rem;
+		right: 1rem;
+		height: 2px;
+		background-color: #60a5fa;
+		transform: scaleX(0);
+		transition: transform 0.3s ease;
+		transform-origin: center;
+	}
+
+	.nav-menu a:hover,
+	.nav-menu a:focus {
+		color: #60a5fa;
+	}
+
+	.nav-menu a:hover::after,
+	.nav-menu a:focus::after {
+		transform: scaleX(1);
+	}
+
+	/* Dropdown Styles */
+	.dropdown {
+		position: relative;
+		display: flex;
+		align-items: center;
+	}
+
+	.dropdown-toggle {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		vertical-align: baseline;
+	}
+
+	.dropdown-arrow {
+		font-size: 0.8rem;
+		transition: transform 0.3s ease;
+	}
+
+	.dropdown:hover .dropdown-arrow {
+		transform: rotate(180deg);
+	}
+
+	.dropdown-menu {
+		position: absolute;
+		top: 100%;
+		left: 0;
+		background: #1f2937;
+		border: 1px solid #374151;
+		border-radius: 8px;
+		box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+		list-style: none;
+		margin: 0;
+		padding: 0.5rem 0;
+		min-width: 150px;
+		opacity: 0;
+		visibility: hidden;
+		transform: translateY(-10px);
+		transition: all 0.3s ease;
+		z-index: 9999;
+	}
+
+	.dropdown:hover .dropdown-menu {
+		opacity: 1;
+		visibility: visible;
+		transform: translateY(0);
+	}
+
+	.dropdown-menu a {
+		display: block;
+		padding: 0.75rem 1rem;
+		color: white;
+		text-decoration: none;
+		transition: all 0.3s ease;
+		border-radius: 0;
+		text-align: center;
+	}
+
+	.dropdown-menu a::after {
+		display: none;
+	}
+
+	.dropdown-menu a:hover,
+	.dropdown-menu a:focus {
+		background-color: #374151;
+		color: #60a5fa;
+	}
+
+	main {
+		min-height: calc(100vh - 200px);
+	}
+
+	.footer {
+		background: #1f2937;
+		color: white;
+		padding: 2rem 0 1rem;
+	}
+
+	.footer-container {
+		max-width: 1200px;
+		margin: 0 auto;
+		padding: 0 2rem;
+	}
+
+	.footer-content {
+		display: grid;
+		grid-template-columns: 1fr 1fr 1fr;
+		gap: 2rem;
+		margin-bottom: 2rem;
+		align-items: start;
+	}
+
+	.footer-section h3 {
+		margin-bottom: 1rem;
+		color: #60a5fa;
+	}
+
+	.logo-section {
+		display: flex;
+		justify-content: center;
+		align-items: flex-start;
+	}
+
+	.footer-logo {
+		margin-bottom: 0;
+	}
+
+	.footer-logo-img {
+		height: 60px;
+		width: auto;
+	}
+
+	.social-links {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+
+	.social-links a {
+		color: #9ca3af;
+		text-decoration: none;
+		transition: color 0.3s;
+	}
+
+	.social-links a:hover {
+		color: #60a5fa;
+	}
+
+	.instagram-link {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.5rem;
+		border-radius: 6px;
+		transition: all 0.3s;
+	}
+
+	.instagram-link:hover {
+		background: rgba(225, 48, 108, 0.1);
+		color: #e1306c;
+	}
+
+	.instagram-link svg {
+		flex-shrink: 0;
+	}
+
+	.facebook-link {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.5rem;
+		border-radius: 6px;
+		transition: all 0.3s;
+	}
+
+	.facebook-link:hover {
+		background: rgba(24, 119, 242, 0.1);
+		color: #1877f2;
+	}
+
+	.facebook-link svg {
+		flex-shrink: 0;
+	}
+
+	.footer-bottom {
+		border-top: 1px solid #374151;
+		padding-top: 1rem;
+		text-align: center;
+		color: #9ca3af;
+	}
+
+	@media (max-width: 768px) {
+		.nav-toggle {
+			display: flex;
+		}
+
+		.nav-menu {
+			position: absolute;
+			top: 100%;
+			left: 0;
+			right: 0;
+			background: #1e3a8a;
+			flex-direction: column;
+			gap: 0;
+			padding: 1rem 0;
+			box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+			transform: translateY(-100%);
+			opacity: 0;
+			visibility: hidden;
+			transition: all 0.3s ease;
+			border-top: 1px solid rgba(255,255,255,0.1);
+		}
+
+		.nav-menu.active {
+			transform: translateY(0);
+			opacity: 1;
+			visibility: visible;
+		}
+
+		.nav-menu a {
+			display: block;
+			padding: 1rem 2rem;
+			border-radius: 0;
+			border-bottom: 1px solid rgba(255,255,255,0.1);
+			transition: all 0.3s ease;
+		}
+
+		.nav-menu a:hover,
+		.nav-menu a:focus {
+			background-color: rgba(255,255,255,0.1);
+			padding-left: 2.5rem;
+			transform: none;
+		}
+
+		/* Mobile Dropdown Styles */
+		.dropdown-menu {
+			position: static;
+			background: #1e40af;
+			border: none;
+			border-radius: 0;
+			box-shadow: none;
+			opacity: 1;
+			visibility: visible;
+			transform: none;
+			transition: none;
+			max-height: 0;
+			overflow: hidden;
+			transition: max-height 0.3s ease;
+		}
+
+		.dropdown:hover .dropdown-menu {
+			max-height: 200px;
+		}
+
+		.dropdown-menu a {
+			padding: 0.75rem 3rem;
+			border-bottom: 1px solid rgba(255,255,255,0.1);
+			background: #1e40af;
+		}
+
+		.dropdown-menu a:hover,
+		.dropdown-menu a:focus {
+			background-color: rgba(255,255,255,0.1);
+			padding-left: 3.5rem;
+		}
+
+		.dropdown-arrow {
+			display: none;
+		}
+
+		.footer-content {
+			grid-template-columns: 1fr;
+			gap: 1.5rem;
+			text-align: center;
+		}
+
+		.logo-section {
+			justify-content: center;
+		}
+
+		.nav-container {
+			padding: 1rem;
+		}
 	}
 </style>

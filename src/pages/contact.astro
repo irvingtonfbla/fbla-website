@@ -1,0 +1,554 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Contact Us - FBLA Chapter" description="Get in touch with our FBLA chapter - join us, ask questions, or learn more about our activities">
+	<section class="page-header">
+		<div class="container">
+			<h1>Contact Us</h1>
+			<p>Get in touch with our FBLA chapter</p>
+		</div>
+	</section>
+
+	<section class="contact-content">
+		<div class="container">
+			<div class="contact-grid">
+				<div class="contact-form-section">
+					<h2>Send Us a Message</h2>
+					<p>Interested in joining FBLA or have questions about our chapter? We'd love to hear from you!</p>
+					
+					<form class="contact-form" id="contactForm">
+						<div class="form-group">
+							<label for="name">Full Name *</label>
+							<input type="text" id="name" name="name" required>
+						</div>
+
+						<div class="form-group">
+							<label for="email">Email Address *</label>
+							<input type="email" id="email" name="email" required>
+						</div>
+
+						<div class="form-group">
+							<label for="phone">Phone Number</label>
+							<input type="tel" id="phone" name="phone">
+						</div>
+
+						<div class="form-group">
+							<label for="grade">Grade Level</label>
+							<select id="grade" name="grade">
+								<option value="">Select Grade</option>
+								<option value="9">9th Grade</option>
+								<option value="10">10th Grade</option>
+								<option value="11">11th Grade</option>
+								<option value="12">12th Grade</option>
+								<option value="other">Other</option>
+							</select>
+						</div>
+
+						<div class="form-group">
+							<label for="interest">What interests you about FBLA?</label>
+							<select id="interest" name="interest">
+								<option value="">Select an option</option>
+								<option value="competitions">Business Competitions</option>
+								<option value="leadership">Leadership Development</option>
+								<option value="networking">Networking Opportunities</option>
+								<option value="service">Community Service</option>
+								<option value="scholarships">Scholarship Opportunities</option>
+								<option value="career">Career Preparation</option>
+								<option value="other">Other</option>
+							</select>
+						</div>
+
+						<div class="form-group">
+							<label for="message">Message *</label>
+							<textarea id="message" name="message" rows="5" placeholder="Tell us about yourself, ask questions, or let us know how we can help!" required></textarea>
+						</div>
+
+						<div class="form-group checkbox-group">
+							<label class="checkbox-label">
+								<input type="checkbox" id="newsletter" name="newsletter">
+								<span class="checkmark"></span>
+								I'd like to receive updates about FBLA events and opportunities
+							</label>
+						</div>
+
+						<button type="submit" class="submit-btn">
+							<span class="btn-text">Send Message</span>
+							<span class="btn-loading" style="display: none;">Sending...</span>
+						</button>
+					</form>
+
+					<div id="form-success" class="form-message success" style="display: none;">
+						<h3>Thank you for your message!</h3>
+						<p>We'll get back to you within 24 hours. In the meantime, feel free to follow us on social media for the latest updates!</p>
+					</div>
+
+					<div id="form-error" class="form-message error" style="display: none;">
+						<h3>Oops! Something went wrong.</h3>
+						<p>Please try again or contact us directly at the information provided below.</p>
+					</div>
+				</div>
+
+				<div class="contact-info-section">
+					<h2>Get in Touch</h2>
+					
+					<div class="contact-card">
+						<div class="contact-icon">
+							<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+								<path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#3b82f6"/>
+							</svg>
+						</div>
+						<div class="contact-details">
+							<h3>Visit Us</h3>
+							<p>Central High School<br>
+							Room 205 (Business Education)<br>
+							123 Education Drive<br>
+							Your City, State 12345</p>
+						</div>
+					</div>
+
+					<div class="contact-card">
+						<div class="contact-icon">
+							<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+								<path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" fill="#3b82f6"/>
+							</svg>
+						</div>
+						<div class="contact-details">
+							<h3>Call Us</h3>
+							<p><strong>Main Office:</strong><br>
+							(555) 123-4567 ext. 2341</p>
+							<p><strong>Chapter Advisor:</strong><br>
+							Mrs. Jennifer Martinez</p>
+						</div>
+					</div>
+
+					<div class="contact-card">
+						<div class="contact-icon">
+							<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+								<path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" fill="#3b82f6"/>
+							</svg>
+						</div>
+						<div class="contact-details">
+							<h3>Email Us</h3>
+							<p><strong>General Inquiries:</strong><br>
+							<a href="mailto:info@fbla.school.edu">info@fbla.school.edu</a></p>
+							<p><strong>Chapter Advisor:</strong><br>
+							<a href="mailto:j.martinez@school.edu">j.martinez@school.edu</a></p>
+						</div>
+					</div>
+
+					<div class="contact-card">
+						<div class="contact-icon">
+							<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+								<path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z" fill="#3b82f6"/>
+								<path d="M12.5 7H11v6l5.25 3.15.75-1.23-4.5-2.67z" fill="#3b82f6"/>
+							</svg>
+						</div>
+						<div class="contact-details">
+							<h3>Meeting Times</h3>
+							<p><strong>Chapter Meetings:</strong><br>
+							Every Tuesday, 3:15-4:15 PM</p>
+							<p><strong>Officer Meetings:</strong><br>
+							First Monday of each month, 3:15-4:00 PM</p>
+						</div>
+					</div>
+
+					<div class="social-media">
+						<h3>Follow Us</h3>
+						<div class="social-links">
+							<a href="#" class="social-link instagram">
+								<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+									<path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+								</svg>
+								@centralhsfbla
+							</a>
+							<a href="#" class="social-link twitter">
+								<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+									<path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
+								</svg>
+								@CentralHSFBLA
+							</a>
+							<a href="#" class="social-link facebook">
+								<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+									<path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+								</svg>
+								Central HS FBLA
+							</a>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<section class="faq">
+		<div class="container">
+			<h2>Frequently Asked Questions</h2>
+			<div class="faq-grid">
+				<div class="faq-item">
+					<h3>How do I join FBLA?</h3>
+					<p>Simply fill out the contact form above or attend one of our Tuesday meetings at 3:15 PM in Room 205. We welcome new members throughout the school year!</p>
+				</div>
+
+				<div class="faq-item">
+					<h3>What are the membership requirements?</h3>
+					<p>You must be enrolled at Central High School and maintain a 2.5 GPA. There's a $25 annual membership fee that covers state and national dues.</p>
+				</div>
+
+				<div class="faq-item">
+					<h3>What competitions can I participate in?</h3>
+					<p>FBLA offers over 70 competitive events in areas like accounting, marketing, entrepreneurship, public speaking, and technology. We'll help you find events that match your interests!</p>
+				</div>
+
+				<div class="faq-item">
+					<h3>Do I need business experience to join?</h3>
+					<p>Not at all! FBLA is designed to teach business skills and leadership. Many of our most successful members started with no business background.</p>
+				</div>
+
+				<div class="faq-item">
+					<h3>What are the time commitments?</h3>
+					<p>We meet every Tuesday for one hour. Additional time commitments are voluntary and include competition preparation, community service projects, and special events.</p>
+				</div>
+
+				<div class="faq-item">
+					<h3>Are there scholarship opportunities?</h3>
+					<p>Yes! FBLA offers numerous scholarships at the state and national levels. Active members are also eligible for local business scholarships through our community partnerships.</p>
+				</div>
+			</div>
+		</div>
+	</section>
+</Layout>
+
+<style>
+	.page-header {
+		background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+		color: white;
+		padding: 3rem 0;
+		text-align: center;
+	}
+
+	.page-header h1 {
+		font-size: 3rem;
+		margin-bottom: 1rem;
+	}
+
+	.page-header p {
+		font-size: 1.25rem;
+		opacity: 0.9;
+	}
+
+	.container {
+		max-width: 1200px;
+		margin: 0 auto;
+		padding: 0 2rem;
+	}
+
+	.contact-content {
+		padding: 4rem 0;
+	}
+
+	.contact-grid {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 4rem;
+		align-items: start;
+	}
+
+	.contact-form-section h2,
+	.contact-info-section h2 {
+		font-size: 2rem;
+		color: #1e3a8a;
+		margin-bottom: 1rem;
+	}
+
+	.contact-form-section p {
+		color: #6b7280;
+		margin-bottom: 2rem;
+		line-height: 1.6;
+	}
+
+	.contact-form {
+		background: white;
+		padding: 2rem;
+		border-radius: 12px;
+		box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+		border: 1px solid #e5e7eb;
+	}
+
+	.form-group {
+		margin-bottom: 1.5rem;
+	}
+
+	.form-group label {
+		display: block;
+		margin-bottom: 0.5rem;
+		font-weight: 600;
+		color: #374151;
+	}
+
+	.form-group input,
+	.form-group select,
+	.form-group textarea {
+		width: 100%;
+		padding: 0.75rem;
+		border: 2px solid #e5e7eb;
+		border-radius: 6px;
+		font-size: 1rem;
+		transition: border-color 0.3s;
+	}
+
+	.form-group input:focus,
+	.form-group select:focus,
+	.form-group textarea:focus {
+		outline: none;
+		border-color: #3b82f6;
+	}
+
+	.form-group textarea {
+		resize: vertical;
+		min-height: 120px;
+	}
+
+	.checkbox-group {
+		display: flex;
+		align-items: center;
+	}
+
+	.checkbox-label {
+		display: flex;
+		align-items: center;
+		cursor: pointer;
+		font-weight: normal;
+	}
+
+	.checkbox-label input[type="checkbox"] {
+		width: auto;
+		margin-right: 0.5rem;
+	}
+
+	.submit-btn {
+		background: #3b82f6;
+		color: white;
+		padding: 0.75rem 2rem;
+		border: none;
+		border-radius: 6px;
+		font-size: 1rem;
+		font-weight: 600;
+		cursor: pointer;
+		transition: background 0.3s;
+		width: 100%;
+	}
+
+	.submit-btn:hover {
+		background: #2563eb;
+	}
+
+	.submit-btn:disabled {
+		background: #9ca3af;
+		cursor: not-allowed;
+	}
+
+	.form-message {
+		padding: 1.5rem;
+		border-radius: 8px;
+		margin-top: 1rem;
+	}
+
+	.form-message.success {
+		background: #d1fae5;
+		border: 1px solid #10b981;
+		color: #065f46;
+	}
+
+	.form-message.error {
+		background: #fee2e2;
+		border: 1px solid #ef4444;
+		color: #991b1b;
+	}
+
+	.form-message h3 {
+		margin-bottom: 0.5rem;
+	}
+
+	.contact-info-section {
+		display: flex;
+		flex-direction: column;
+		gap: 1.5rem;
+	}
+
+	.contact-card {
+		display: flex;
+		gap: 1rem;
+		padding: 1.5rem;
+		background: white;
+		border-radius: 12px;
+		box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+		border: 1px solid #e5e7eb;
+	}
+
+	.contact-icon {
+		flex-shrink: 0;
+	}
+
+	.contact-details h3 {
+		font-size: 1.125rem;
+		color: #1e3a8a;
+		margin-bottom: 0.5rem;
+	}
+
+	.contact-details p {
+		color: #4b5563;
+		line-height: 1.5;
+		margin-bottom: 0.5rem;
+	}
+
+	.contact-details a {
+		color: #3b82f6;
+		text-decoration: none;
+	}
+
+	.contact-details a:hover {
+		text-decoration: underline;
+	}
+
+	.social-media {
+		padding: 1.5rem;
+		background: white;
+		border-radius: 12px;
+		box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+		border: 1px solid #e5e7eb;
+	}
+
+	.social-media h3 {
+		font-size: 1.125rem;
+		color: #1e3a8a;
+		margin-bottom: 1rem;
+	}
+
+	.social-links {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+	}
+
+	.social-link {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		color: #4b5563;
+		text-decoration: none;
+		padding: 0.5rem;
+		border-radius: 6px;
+		transition: background 0.3s;
+	}
+
+	.social-link:hover {
+		background: #f3f4f6;
+	}
+
+	.social-link.instagram:hover {
+		color: #e1306c;
+	}
+
+	.social-link.twitter:hover {
+		color: #1da1f2;
+	}
+
+	.social-link.facebook:hover {
+		color: #1877f2;
+	}
+
+	.faq {
+		padding: 4rem 0;
+		background: #f8fafc;
+	}
+
+	.faq h2 {
+		text-align: center;
+		margin-bottom: 3rem;
+		font-size: 2.5rem;
+		color: #1e3a8a;
+	}
+
+	.faq-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+		gap: 2rem;
+	}
+
+	.faq-item {
+		background: white;
+		padding: 2rem;
+		border-radius: 12px;
+		box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+	}
+
+	.faq-item h3 {
+		font-size: 1.25rem;
+		color: #1e3a8a;
+		margin-bottom: 1rem;
+	}
+
+	.faq-item p {
+		color: #4b5563;
+		line-height: 1.6;
+	}
+
+	@media (max-width: 768px) {
+		.page-header h1 {
+			font-size: 2rem;
+		}
+
+		.contact-grid {
+			grid-template-columns: 1fr;
+			gap: 2rem;
+		}
+
+		.contact-form {
+			padding: 1.5rem;
+		}
+
+		.faq-grid {
+			grid-template-columns: 1fr;
+		}
+	}
+</style>
+
+<script>
+	document.addEventListener('DOMContentLoaded', function() {
+		const form = document.getElementById('contactForm');
+		const submitBtn = form.querySelector('.submit-btn');
+		const btnText = submitBtn.querySelector('.btn-text');
+		const btnLoading = submitBtn.querySelector('.btn-loading');
+		const successMessage = document.getElementById('form-success');
+		const errorMessage = document.getElementById('form-error');
+
+		form.addEventListener('submit', function(e) {
+			e.preventDefault();
+
+			// Show loading state
+			submitBtn.disabled = true;
+			btnText.style.display = 'none';
+			btnLoading.style.display = 'inline';
+
+			// Hide any previous messages
+			successMessage.style.display = 'none';
+			errorMessage.style.display = 'none';
+
+			// Simulate form submission (replace with actual form handling)
+			setTimeout(() => {
+				// Reset button state
+				submitBtn.disabled = false;
+				btnText.style.display = 'inline';
+				btnLoading.style.display = 'none';
+
+				// Show success message (in real implementation, check if submission was successful)
+				successMessage.style.display = 'block';
+				form.reset();
+
+				// Scroll to success message
+				successMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+			}, 2000);
+		});
+	});
+</script>

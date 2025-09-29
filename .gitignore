@@ -22,3 +22,10 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+# Large image folders (keep local only)
+drive-download-*/
+officer team/
+*.JPG
+*.jpeg
+*.heic

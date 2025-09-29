@@ -1,0 +1,170 @@
+backend:
+  name: git-gateway
+  branch: main
+
+media_folder: "public/images"
+public_folder: "/images"
+
+site_url: https://fbla-website.netlify.app
+display_url: https://fbla-website.netlify.app
+logo_url: https://fbla-website.netlify.app/images/fbla-logo.png
+
+collections:
+  - name: "press"
+    label: "Press & News"
+    folder: "src/content/press"
+    create: true
+    slug: "{{slug}}"
+    fields:
+      - { label: "Title", name: "title", widget: "string" }
+      - { label: "Description", name: "description", widget: "text" }
+      - { label: "Publish Date", name: "publishDate", widget: "datetime" }
+      - { label: "Author", name: "author", widget: "string", required: false }
+      - { label: "Featured Image", name: "image", widget: "image", required: false }
+      - { label: "Image Alt Text", name: "imageAlt", widget: "string", required: false }
+      - { label: "Category", name: "category", widget: "select", options: ["news", "press-release", "achievement", "event"] }
+      - { label: "Featured", name: "featured", widget: "boolean", default: false }
+      - { label: "Tags", name: "tags", widget: "list", required: false }
+      - { label: "Body", name: "body", widget: "markdown" }
+
+  - name: "events"
+    label: "Events"
+    folder: "src/content/events"
+    create: true
+    slug: "{{slug}}"
+    fields:
+      - { label: "Title", name: "title", widget: "string" }
+      - { label: "Description", name: "description", widget: "text" }
+      - { label: "Start Date", name: "startDate", widget: "datetime" }
+      - { label: "End Date", name: "endDate", widget: "datetime", required: false }
+      - { label: "Location", name: "location", widget: "string" }
+      - { label: "Event Image", name: "image", widget: "image", required: false }
+      - { label: "Image Alt Text", name: "imageAlt", widget: "string", required: false }
+      - { label: "Category", name: "category", widget: "select", options: ["meeting", "competition", "conference", "service", "social", "workshop"] }
+      - { label: "Registration Required", name: "registrationRequired", widget: "boolean", default: false }
+      - { label: "Registration Link", name: "registrationLink", widget: "string", required: false }
+      - { label: "Cost", name: "cost", widget: "string", required: false }
+      - { label: "Featured", name: "featured", widget: "boolean", default: false }
+      - { label: "Body", name: "body", widget: "markdown" }
+
+  - name: "officers"
+    label: "Officer Team"
+    folder: "src/content/officers"
+    create: true
+    slug: "{{fields.name}}-{{fields.position}}"
+    fields:
+      - { label: "Name", name: "name", widget: "string" }
+      - { label: "Position", name: "position", widget: "string" }
+      - { label: "Grade", name: "grade", widget: "number", value_type: "int", min: 9, max: 12 }
+      - { label: "Bio", name: "bio", widget: "text" }
+      - { label: "Profile Image", name: "image", widget: "image", required: false }
+      - { label: "Image Alt Text", name: "imageAlt", widget: "string", required: false }
+      - { label: "Email", name: "email", widget: "string", required: false }
+      - { label: "LinkedIn", name: "linkedin", widget: "string", required: false }
+      - { label: "Achievements", name: "achievements", widget: "list", required: false }
+      - { label: "Goals", name: "goals", widget: "list", required: false }
+      - { label: "Display Order", name: "order", widget: "number", value_type: "int", default: 0 }
+      - { label: "Body", name: "body", widget: "markdown" }
+
+  - name: "success"
+    label: "Success Stories"
+    folder: "src/content/success"
+    create: true
+    slug: "{{slug}}"
+    fields:
+      - { label: "Title", name: "title", widget: "string" }
+      - { label: "Description", name: "description", widget: "text" }
+      - { label: "Date", name: "date", widget: "datetime" }
+      - { label: "Category", name: "category", widget: "select", options: ["competition", "scholarship", "leadership", "service", "recognition"] }
+      - { label: "Image", name: "image", widget: "image", required: false }
+      - { label: "Image Alt Text", name: "imageAlt", widget: "string", required: false }
+      - { label: "Participants", name: "participants", widget: "list", required: false }
+      - { label: "Award", name: "award", widget: "string", required: false }
+      - { label: "Level", name: "level", widget: "select", options: ["local", "regional", "state", "national"], required: false }
+      - { label: "Featured", name: "featured", widget: "boolean", default: false }
+      - { label: "Body", name: "body", widget: "markdown" }
+
+  - name: "gallery"
+    label: "Photo Gallery"
+    folder: "src/content/gallery"
+    create: true
+    slug: "{{slug}}"
+    fields:
+      - { label: "Title", name: "title", widget: "string" }
+      - { label: "Description", name: "description", widget: "text", required: false }
+      - { label: "Date", name: "date", widget: "datetime" }
+      - { label: "Image", name: "image", widget: "image" }
+      - { label: "Image Alt Text", name: "imageAlt", widget: "string" }
+      - { label: "Category", name: "category", widget: "select", options: ["events", "competitions", "meetings", "service", "conferences", "social"] }
+      - { label: "Photographer", name: "photographer", widget: "string", required: false }
+      - { label: "Featured", name: "featured", widget: "boolean", default: false }
+      - { label: "Body", name: "body", widget: "markdown", required: false }
+
+  - name: "sponsors"
+    label: "Sponsors"
+    folder: "src/content/sponsors"
+    create: true
+    slug: "{{fields.name}}"
+    fields:
+      - { label: "Name", name: "name", widget: "string" }
+      - { label: "Description", name: "description", widget: "text", required: false }
+      - { label: "Logo", name: "logo", widget: "image" }
+      - { label: "Logo Alt Text", name: "logoAlt", widget: "string" }
+      - { label: "Website", name: "website", widget: "string", required: false }
+      - { label: "Tier", name: "tier", widget: "select", options: ["platinum", "gold", "silver", "bronze", "supporter"] }
+      - { label: "Active", name: "active", widget: "boolean", default: true }
+      - { label: "Display Order", name: "order", widget: "number", value_type: "int", default: 0 }
+      - { label: "Body", name: "body", widget: "markdown", required: false }
+
+  - name: "settings"
+    label: "Site Settings"
+    files:
+      - label: "General Settings"
+        name: "general"
+        file: "src/data/settings.json"
+        fields:
+          - { label: "Site Title", name: "title", widget: "string" }
+          - { label: "Site Description", name: "description", widget: "text" }
+          - { label: "Contact Email", name: "email", widget: "string" }
+          - { label: "Phone Number", name: "phone", widget: "string" }
+          - { label: "School Address", name: "address", widget: "text" }
+          - { label: "Meeting Time", name: "meetingTime", widget: "string" }
+          - { label: "Meeting Location", name: "meetingLocation", widget: "string" }
+          - label: "Social Media"
+            name: "social"
+            widget: "object"
+            fields:
+              - { label: "Instagram", name: "instagram", widget: "string", required: false }
+              - { label: "Twitter", name: "twitter", widget: "string", required: false }
+              - { label: "Facebook", name: "facebook", widget: "string", required: false }
+              - { label: "LinkedIn", name: "linkedin", widget: "string", required: false }
+
+      - label: "Navigation"
+        name: "navigation"
+        file: "src/data/navigation.json"
+        fields:
+          - label: "Main Navigation"
+            name: "main"
+            widget: "list"
+            fields:
+              - { label: "Label", name: "label", widget: "string" }
+              - { label: "URL", name: "url", widget: "string" }
+              - label: "Dropdown Items"
+                name: "dropdown"
+                widget: "list"
+                required: false
+                fields:
+                  - { label: "Label", name: "label", widget: "string" }
+                  - { label: "URL", name: "url", widget: "string" }
+
+# Editorial workflow for content approval
+publish_mode: editorial_workflow
+
+# Media library settings
+media_library:
+  name: uploadcare
+  config:
+    publicKey: "your-uploadcare-public-key"
+
+# Local backend for development
+local_backend: true
