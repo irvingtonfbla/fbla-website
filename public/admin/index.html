@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>Content Manager - FBLA Website</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  
+  <!-- Decap CMS Styles -->
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: #f8fafc;
+    }
+    
+    .loading-content {
+      text-align: center;
+    }
+    
+    .loading h1 {
+      color: #1e3a8a;
+      margin-bottom: 1rem;
+    }
+    
+    .loading p {
+      color: #6b7280;
+      margin-bottom: 2rem;
+    }
+    
+    .spinner {
+      border: 4px solid #e5e7eb;
+      border-top: 4px solid #3b82f6;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <!-- Loading screen -->
+  <div class="loading" id="loading">
+    <div class="loading-content">
+      <h1>FBLA Content Manager</h1>
+      <p>Loading content management system...</p>
+      <div class="spinner"></div>
+    </div>
+  </div>
+
+  <!-- Decap CMS -->
+  <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
+  
+  <!-- Custom CMS Configuration -->
+  <script>
+    // Hide loading screen once CMS loads
+    window.addEventListener('load', function() {
+      setTimeout(function() {
+        document.getElementById('loading').style.display = 'none';
+      }, 1000);
+    });
+    
+    // Custom preview templates
+    CMS.registerPreviewTemplate('press', function(props) {
+      const { entry, widgetFor, widgetsFor } = props;
+      const title = entry.getIn(['data', 'title']);
+      const description = entry.getIn(['data', 'description']);
+      const publishDate = entry.getIn(['data', 'publishDate']);
+      const category = entry.getIn(['data', 'category']);
+      const body = widgetFor('body');
+      
+      return `
+        <div style="max-width: 800px; margin: 0 auto; padding: 2rem; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+          <div style="background: #3b82f6; color: white; padding: 1rem; border-radius: 8px 8px 0 0;">
+            <span style="background: rgba(255,255,255,0.2); padding: 0.25rem 0.75rem; border-radius: 4px; font-size: 0.875rem; text-transform: uppercase;">${category}</span>
+          </div>
+          <div style="background: white; padding: 2rem; border-radius: 0 0 8px 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <h1 style="color: #1e3a8a; margin-bottom: 1rem;">${title}</h1>
+            <p style="color: #6b7280; font-size: 0.875rem; margin-bottom: 1rem;">${new Date(publishDate).toLocaleDateString()}</p>
+            <p style="color: #4b5563; font-size: 1.125rem; margin-bottom: 2rem; font-style: italic;">${description}</p>
+            <div style="color: #374151; line-height: 1.7;">${body}</div>
+          </div>
+        </div>
+      `;
+    });
+    
+    CMS.registerPreviewTemplate('events', function(props) {
+      const { entry, widgetFor } = props;
+      const title = entry.getIn(['data', 'title']);
+      const description = entry.getIn(['data', 'description']);
+      const startDate = entry.getIn(['data', 'startDate']);
+      const location = entry.getIn(['data', 'location']);
+      const category = entry.getIn(['data', 'category']);
+      const body = widgetFor('body');
+      
+      return `
+        <div style="max-width: 800px; margin: 0 auto; padding: 2rem; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+          <div style="background: #10b981; color: white; padding: 1rem; border-radius: 8px 8px 0 0;">
+            <span style="background: rgba(255,255,255,0.2); padding: 0.25rem 0.75rem; border-radius: 4px; font-size: 0.875rem; text-transform: uppercase;">${category}</span>
+          </div>
+          <div style="background: white; padding: 2rem; border-radius: 0 0 8px 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <h1 style="color: #1e3a8a; margin-bottom: 1rem;">${title}</h1>
+            <div style="display: flex; gap: 2rem; margin-bottom: 1rem; font-size: 0.875rem; color: #6b7280;">
+              <span>📅 ${new Date(startDate).toLocaleDateString()}</span>
+              <span>📍 ${location}</span>
+            </div>
+            <p style="color: #4b5563; font-size: 1.125rem; margin-bottom: 2rem; font-style: italic;">${description}</p>
+            <div style="color: #374151; line-height: 1.7;">${body}</div>
+          </div>
+        </div>
+      `;
+    });
+    
+    CMS.registerPreviewTemplate('officers', function(props) {
+      const { entry, widgetFor } = props;
+      const name = entry.getIn(['data', 'name']);
+      const position = entry.getIn(['data', 'position']);
+      const grade = entry.getIn(['data', 'grade']);
+      const bio = entry.getIn(['data', 'bio']);
+      const body = widgetFor('body');
+      
+      return `
+        <div style="max-width: 800px; margin: 0 auto; padding: 2rem; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+          <div style="background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <div style="text-align: center; margin-bottom: 2rem;">
+              <div style="width: 120px; height: 120px; background: #e5e7eb; border-radius: 50%; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; font-size: 2rem;">👤</div>
+              <h1 style="color: #1e3a8a; margin-bottom: 0.5rem;">${name}</h1>
+              <p style="color: #3b82f6; font-weight: 600; margin-bottom: 0.25rem;">${position}</p>
+              <p style="color: #6b7280; font-size: 0.875rem;">Grade ${grade}</p>
+            </div>
+            <p style="color: #4b5563; font-size: 1.125rem; margin-bottom: 2rem; font-style: italic; text-align: center;">${bio}</p>
+            <div style="color: #374151; line-height: 1.7;">${body}</div>
+          </div>
+        </div>
+      `;
+    });
+    
+    // Custom editor components
+    CMS.registerEditorComponent({
+      id: "callout",
+      label: "Callout Box",
+      fields: [
+        { name: "type", label: "Type", widget: "select", options: ["info", "warning", "success", "error"] },
+        { name: "title", label: "Title", widget: "string" },
+        { name: "content", label: "Content", widget: "text" }
+      ],
+      pattern: /^<div class="callout callout-(\w+)">\s*<h4>([^<]+)<\/h4>\s*<p>([^<]+)<\/p>\s*<\/div>$/,
+      fromBlock: function(match) {
+        return {
+          type: match[1],
+          title: match[2],
+          content: match[3]
+        };
+      },
+      toBlock: function(obj) {
+        return `<div class="callout callout-${obj.type}">
+  <h4>${obj.title}</h4>
+  <p>${obj.content}</p>
+</div>`;
+      },
+      toPreview: function(obj) {
+        const colors = {
+          info: '#3b82f6',
+          warning: '#f59e0b',
+          success: '#10b981',
+          error: '#ef4444'
+        };
+        return `<div style="border-left: 4px solid ${colors[obj.type]}; background: #f8fafc; padding: 1rem; margin: 1rem 0; border-radius: 4px;">
+          <h4 style="margin: 0 0 0.5rem 0; color: ${colors[obj.type]};">${obj.title}</h4>
+          <p style="margin: 0; color: #4b5563;">${obj.content}</p>
+        </div>`;
+      }
+    });
+    
+    // Initialize CMS
+    CMS.init();
+  </script>
+</body>
+</html>
