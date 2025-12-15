@@ -1,5 +1,16 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+const slcDirUrl = new URL('../../public/gallery/slc2025', import.meta.url);
+let homeImages = [];
+try {
+  const dirPath = fileURLToPath(slcDirUrl);
+  const files = fs.readdirSync(dirPath).filter((f) => /\.(jpe?g|png|webp)$/i.test(f));
+  files.sort();
+  homeImages = files.slice(0, 6).map((f) => `/gallery/slc2025/${f}`);
+} catch {}
 ---
 
 <Layout title="Home - FBLA Chapter" description="Welcome to our Future Business Leaders of America chapter website">
@@ -17,22 +28,7 @@ import Layout from '../layouts/Layout.astro';
 				<div class="gallery-container">
 					<div class="gallery-slides">
 						<div class="slide active">
-							<img src="/gallery-1.jpg" alt="FBLA Chapter Members" />
-						</div>
-						<div class="slide">
-							<img src="/gallery-2.jpg" alt="FBLA Conference" />
-						</div>
-						<div class="slide">
-							<img src="/gallery-3.jpg" alt="FBLA Team Building" />
-						</div>
-						<div class="slide">
-							<img src="/gallery-4.jpg" alt="FBLA Leadership" />
-						</div>
-						<div class="slide">
-							<img src="/gallery-5.jpg" alt="FBLA Activities" />
-						</div>
-						<div class="slide">
-							<img src="/gallery-6.jpg" alt="FBLA Events" />
+							<img src="/hero.JPG" alt="Hero Photo" fetchpriority="high" decoding="async" onerror="this.onerror=null; this.src='/logo.png';" />
 						</div>
 					</div>
 					<button class="gallery-nav prev" onclick="changeSlide(-1)">‹</button>
@@ -77,24 +73,13 @@ import Layout from '../layouts/Layout.astro';
 			<h2>Our Chapter in Action</h2>
 			<p class="gallery-subtitle">Capturing moments from our conferences, competitions, and community events</p>
 			<div class="gallery-grid">
-				<div class="gallery-item">
-					<img src="/gallery-1.jpg" alt="FBLA Chapter Members" loading="lazy" />
-				</div>
-				<div class="gallery-item">
-					<img src="/gallery-2.jpg" alt="FBLA Conference" loading="lazy" />
-				</div>
-				<div class="gallery-item">
-					<img src="/gallery-3.jpg" alt="FBLA Team Building" loading="lazy" />
-				</div>
-				<div class="gallery-item">
-					<img src="/gallery-4.jpg" alt="FBLA Leadership" loading="lazy" />
-				</div>
-				<div class="gallery-item">
-					<img src="/gallery-5.jpg" alt="FBLA Activities" loading="lazy" />
-				</div>
-				<div class="gallery-item">
-					<img src="/gallery-6.jpg" alt="FBLA Events" loading="lazy" />
-				</div>
+				{(homeImages.length ? homeImages : ['/hero.JPG','/logo.png','/hero.JPG','/logo.png','/hero.JPG','/logo.png'])
+					.slice(0, 6)
+					.map((src) => (
+						<div class="gallery-item">
+							<img src={src} alt="SLC 2025" loading="lazy" decoding="async" onerror="this.onerror=null; this.src='/logo.png';" />
+						</div>
+					))}
 			</div>
 			<div class="gallery-cta">
 				<a href="/gallery" class="btn btn-primary">View Full Gallery</a>
@@ -168,36 +153,21 @@ import Layout from '../layouts/Layout.astro';
 	<section class="upcoming-events">
 		<div class="container">
 			<h2>Upcoming Events</h2>
-			<div class="events-grid">
-				<div class="event-card">
-					<div class="event-date">
-						<span class="month">Mar</span>
-						<span class="day">15</span>
-					</div>
-					<div class="event-info">
-						<h3>State Leadership Conference</h3>
-						<p>Annual state competition and leadership development</p>
-					</div>
+			<div class="calendar">
+				<div class="calendar-header">
+					<button class="calendar-nav prev" id="calPrev">‹</button>
+					<div class="calendar-title" id="calTitle"></div>
+					<button class="calendar-nav next" id="calNext">›</button>
 				</div>
-				<div class="event-card">
-					<div class="event-date">
-						<span class="month">Apr</span>
-						<span class="day">20</span>
-					</div>
-					<div class="event-info">
-						<h3>Community Service Day</h3>
-						<p>Volunteer at local food bank and community center</p>
-					</div>
-				</div>
-				<div class="event-card">
-					<div class="event-date">
-						<span class="month">Jun</span>
-						<span class="day">25</span>
-					</div>
-					<div class="event-info">
-						<h3>National Leadership Conference</h3>
-						<p>Compete at the national level in Atlanta, GA</p>
-					</div>
+				<div class="calendar-grid">
+					<div class="day-name">Sun</div>
+					<div class="day-name">Mon</div>
+					<div class="day-name">Tue</div>
+					<div class="day-name">Wed</div>
+					<div class="day-name">Thu</div>
+					<div class="day-name">Fri</div>
+					<div class="day-name">Sat</div>
+					<div id="calendarDays" class="days"></div>
 				</div>
 			</div>
 		</div>
@@ -287,6 +257,59 @@ import Layout from '../layouts/Layout.astro';
 	if (numbersSection) {
 		observer.observe(numbersSection);
 	}
+
+	const calTitleEl = document.getElementById('calTitle');
+	const calDaysEl = document.getElementById('calendarDays');
+	const calPrevEl = document.getElementById('calPrev');
+	const calNextEl = document.getElementById('calNext');
+	let calDate = new Date();
+
+	function renderCalendar() {
+		const year = calDate.getFullYear();
+		const month = calDate.getMonth();
+		const first = new Date(year, month, 1);
+		const startDay = first.getDay();
+		const daysInMonth = new Date(year, month + 1, 0).getDate();
+		const daysInPrev = new Date(year, month, 0).getDate();
+		if (calTitleEl) calTitleEl.textContent = first.toLocaleString(undefined, { month: 'long', year: 'numeric' });
+		if (!calDaysEl) return;
+		calDaysEl.innerHTML = '';
+		for (let i = 0; i < startDay; i++) {
+			const d = document.createElement('div');
+			d.className = 'cal-day other-month';
+			const num = document.createElement('div');
+			num.className = 'num';
+			num.textContent = String(daysInPrev - startDay + i + 1);
+			d.appendChild(num);
+			calDaysEl.appendChild(d);
+		}
+		const today = new Date();
+		for (let day = 1; day <= daysInMonth; day++) {
+			const d = document.createElement('div');
+			d.className = 'cal-day';
+			const num = document.createElement('div');
+			num.className = 'num';
+			num.textContent = String(day);
+			d.appendChild(num);
+			if (today.getFullYear() === year && today.getMonth() === month && today.getDate() === day) d.classList.add('today');
+			calDaysEl.appendChild(d);
+		}
+		const cells = 42;
+		const filled = startDay + daysInMonth;
+		for (let i = filled; i < cells; i++) {
+			const d = document.createElement('div');
+			d.className = 'cal-day other-month';
+			const num = document.createElement('div');
+			num.className = 'num';
+			num.textContent = String(i - filled + 1);
+			d.appendChild(num);
+			calDaysEl.appendChild(d);
+		}
+	}
+
+	if (calPrevEl) calPrevEl.addEventListener('click', () => { calDate.setMonth(calDate.getMonth() - 1); renderCalendar(); });
+	if (calNextEl) calNextEl.addEventListener('click', () => { calDate.setMonth(calDate.getMonth() + 1); renderCalendar(); });
+	if (calTitleEl && calDaysEl) renderCalendar();
 </script>
 
 <style>
@@ -643,8 +666,96 @@ import Layout from '../layouts/Layout.astro';
 
 	.upcoming-events h2 {
 		text-align: center;
-		margin-bottom: 3rem;
+		margin-bottom: 2rem;
 		font-size: 2.5rem;
+		color: #1e3a8a;
+	}
+
+	.calendar {
+		background: white;
+		border-radius: 12px;
+		box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+		padding: 1.5rem;
+		max-width: 800px;
+		margin: 0 auto;
+	}
+
+	.calendar-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin-bottom: 1rem;
+	}
+
+	.calendar-title {
+		font-size: 1.25rem;
+		font-weight: 600;
+		color: #1e3a8a;
+	}
+
+	.calendar-nav {
+		background: #3b82f6;
+		color: white;
+		border: none;
+		border-radius: 8px;
+		width: 40px;
+		height: 40px;
+		cursor: pointer;
+		transition: transform 0.2s ease, box-shadow 0.2s ease;
+	}
+
+	.calendar-nav:hover {
+		transform: scale(1.05);
+		box-shadow: 0 6px 14px rgba(59,130,246,0.35);
+	}
+
+	.calendar-grid {
+		display: grid;
+		grid-template-columns: repeat(7, 1fr);
+		gap: 0.75rem;
+	}
+
+	.day-name {
+		text-align: center;
+		font-weight: 600;
+		color: #1e3a8a;
+		padding: 0.5rem 0;
+		border-bottom: 2px solid #e5e7eb;
+	}
+
+	.days {
+		grid-column: 1 / -1;
+		display: grid;
+		grid-template-columns: repeat(7, 1fr);
+		gap: 0.75rem;
+	}
+
+	.cal-day {
+		background: #f8fafc;
+		border-radius: 10px;
+		min-height: 85px;
+		padding: 0.5rem;
+		box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+		position: relative;
+		transition: transform 0.2s ease, box-shadow 0.2s ease;
+	}
+
+	.cal-day:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 6px 14px rgba(0,0,0,0.08);
+	}
+
+	.cal-day.other-month {
+		opacity: 0.5;
+	}
+
+	.cal-day.today {
+		outline: 2px solid #3b82f6;
+		outline-offset: -2px;
+	}
+
+	.cal-day .num {
+		font-weight: 600;
 		color: #1e3a8a;
 	}
 
@@ -743,6 +854,18 @@ import Layout from '../layouts/Layout.astro';
 
 		.event-fbla-card {
 			padding: 1.5rem;
+		}
+
+		.calendar {
+			padding: 1rem;
+		}
+
+		.calendar-grid {
+			gap: 0.5rem;
+		}
+
+		.cal-day {
+			min-height: 70px;
 		}
 	}
 </style>

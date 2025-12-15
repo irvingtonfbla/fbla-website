@@ -131,7 +131,7 @@ To prepare for competitive events:
 
 For questions about the conference or registration:
 - **Mrs. Jennifer Martinez** - Chapter Advisor
-- **Email:** j.martinez@school.edu
+- **Email:** halbizo@fusdk12.net
 - **Phone:** (555) 123-4567 ext. 2341
 - **Office Hours:** Monday-Friday, 3:00-4:00 PM
 
