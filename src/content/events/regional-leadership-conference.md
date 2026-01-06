@@ -131,10 +131,18 @@ To prepare for competitive events:
 
 For questions about the conference or registration:
 - **Mrs. Jennifer Martinez** - Chapter Advisor
+<<<<<<< HEAD
 - **Email:** j.martinez@school.edu
+=======
+- **Email:** halbizo@fusdk12.net
+>>>>>>> temp-main
 - **Phone:** (555) 123-4567 ext. 2341
 - **Office Hours:** Monday-Friday, 3:00-4:00 PM
 
 ---
 
+<<<<<<< HEAD
 *This conference is a qualifying event for the State Leadership Conference. Top finishers in each competitive event will advance to represent our region at the state level.*
+=======
+*This conference is a qualifying event for the State Leadership Conference. Top finishers in each competitive event will advance to represent our region at the state level.*
+>>>>>>> temp-main

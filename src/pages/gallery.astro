@@ -1,5 +1,20 @@
 ---
 import Layout from '../layouts/Layout.astro';
+<<<<<<< HEAD
+=======
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+const dirUrl = new URL('../../public/gallery/slc2025', import.meta.url);
+let images = [];
+try {
+  const dirPath = fileURLToPath(dirUrl);
+  const files = fs.readdirSync(dirPath).filter((f) => /\.(jpe?g|png|webp)$/i.test(f));
+  images = files.map((f) => ({ src: `/gallery/slc2025/${f}`, title: 'SLC 2025', desc: 'State Leadership Conference 2025' }));
+} catch (e) {
+  images = [];
+}
+>>>>>>> temp-main
 ---
 
 <Layout title="Gallery - FBLA Chapter" description="Photo gallery showcasing our FBLA chapter events, competitions, and activities">
@@ -14,10 +29,14 @@ import Layout from '../layouts/Layout.astro';
 		<div class="container">
 			<div class="filter-buttons">
 				<button class="filter-btn active" data-filter="all">All Photos</button>
+<<<<<<< HEAD
 				<button class="filter-btn" data-filter="competitions">Competitions</button>
 				<button class="filter-btn" data-filter="meetings">Meetings</button>
 				<button class="filter-btn" data-filter="service">Community Service</button>
 				<button class="filter-btn" data-filter="social">Social Events</button>
+=======
+				<button class="filter-btn" data-filter="slc2025">SLC 2025</button>
+>>>>>>> temp-main
 			</div>
 		</div>
 	</section>
@@ -25,6 +44,7 @@ import Layout from '../layouts/Layout.astro';
 	<section class="gallery">
 		<div class="container">
 			<div class="gallery-grid">
+<<<<<<< HEAD
 				<!-- Competition Photos -->
 				<div class="gallery-item" data-category="competitions">
 					<img src="/gallery/state-competition-1.jpg" alt="State Leadership Conference 2024" />
@@ -157,6 +177,21 @@ import Layout from '../layouts/Layout.astro';
 						<p>End of year chapter celebration</p>
 					</div>
 				</div>
+=======
+				{images.length === 0 ? (
+					<p>No photos found in SLC 2025.</p>
+				) : (
+					images.map((img) => (
+						<div class="gallery-item" data-category="slc2025">
+							<img src={img.src} alt={img.title} loading="lazy" decoding="async" />
+							<div class="gallery-overlay">
+								<h3>{img.title}</h3>
+								<p>{img.desc}</p>
+							</div>
+						</div>
+					))
+				)}
+>>>>>>> temp-main
 			</div>
 		</div>
 	</section>
@@ -440,4 +475,8 @@ import Layout from '../layouts/Layout.astro';
 			}
 		});
 	});
+<<<<<<< HEAD
 </script>
+=======
+</script>
+>>>>>>> temp-main
