@@ -48,16 +48,8 @@ This win adds to Central High FBLA's impressive track record this year:
 
 The Central High School FBLA chapter, established in 2010, has grown to over 120 active members. The chapter focuses on developing business skills, leadership abilities, and community engagement among high school students.
 
-<<<<<<< HEAD
-For more information about Central High FBLA or to schedule interviews, contact Mrs. Jennifer Martinez at j.martinez@school.edu or (555) 123-4567 ext. 2341.
-
----
-
-*Future Business Leaders of America (FBLA) is the largest student business organization in the world, with over 230,000 members across all 50 states and international locations.*
-=======
 For more information about Central High FBLA or to schedule interviews, contact Mrs. Jennifer Martinez at halbizo@fusdk12.net or (555) 123-4567 ext. 2341.
 
 ---
 
 *Future Business Leaders of America (FBLA) is the largest student business organization in the world, with over 230,000 members across all 50 states and international locations.*
->>>>>>> temp-main
