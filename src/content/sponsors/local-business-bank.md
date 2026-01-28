@@ -56,4 +56,4 @@ Local Business Bank's support has enabled our chapter to:
 
 ---
 
-*Interested in becoming a sponsor? Contact our chapter advisor to learn about partnership opportunities.*
+*Interested in becoming a sponsor? Contact our chapter officers to learn about partnership opportunities.*

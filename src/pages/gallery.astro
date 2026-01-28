@@ -1,17 +1,33 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
+import { Image } from 'astro:assets';
+import fs from 'node:fs';
 
-const dirUrl = new URL('../../public/gallery/slc2025', import.meta.url);
-let images = [];
-try {
-  const dirPath = fileURLToPath(dirUrl);
-  const files = fs.readdirSync(dirPath).filter((f) => /\.(jpe?g|png|webp)$/i.test(f));
-  images = files.map((f) => ({ src: `/gallery/slc2025/${f}`, title: 'SLC 2025', desc: 'State Leadership Conference 2025' }));
-} catch (e) {
-  images = [];
+const galleryRoot = new URL('../../public/gallery/', import.meta.url);
+const categories = ['nlc2024', 'slc2024', 'slc2025'] as const;
+const labels: Record<(typeof categories)[number], { title: string; desc: string }> = {
+  nlc2024: { title: 'NLC 2024', desc: 'National Leadership Conference 2024' },
+  slc2024: { title: 'SLC 2024', desc: 'State Leadership Conference 2024' },
+  slc2025: { title: 'SLC 2025', desc: 'State Leadership Conference 2025' },
+};
+
+function readImages(cat: (typeof categories)[number]) {
+  const dir = new URL(`./${cat}/`, galleryRoot);
+  let files: string[] = [];
+  try {
+    files = fs.readdirSync(dir).filter((f) => /\.(jpe?g|png|webp|gif)$/i.test(f));
+  } catch {
+    files = [];
+  }
+  return files.map((f) => ({
+    src: `/gallery/${cat}/${f}`,
+    title: labels[cat].title,
+    desc: labels[cat].desc,
+    category: cat,
+  }));
 }
+
+const images = categories.flatMap((c) => readImages(c));
 ---
 
 <Layout title="Gallery - FBLA Chapter" description="Photo gallery showcasing our FBLA chapter events, competitions, and activities">
@@ -26,6 +42,8 @@ try {
 		<div class="container">
 			<div class="filter-buttons">
 				<button class="filter-btn active" data-filter="all">All Photos</button>
+				<button class="filter-btn" data-filter="nlc2024">NLC 2024</button>
+				<button class="filter-btn" data-filter="slc2024">SLC 2024</button>
 				<button class="filter-btn" data-filter="slc2025">SLC 2025</button>
 			</div>
 		</div>
@@ -35,11 +53,11 @@ try {
 		<div class="container">
 			<div class="gallery-grid">
 				{images.length === 0 ? (
-					<p>No photos found in SLC 2025.</p>
+					<p>No photos found in the gallery folders.</p>
 				) : (
 					images.map((img) => (
-						<div class="gallery-item" data-category="slc2025">
-							<img src={img.src} alt={img.title} loading="lazy" decoding="async" />
+						<div class="gallery-item" data-category={img.category}>
+							<Image src={img.src} alt={img.title} loading="lazy" decoding="async" width={600} height={400} />
 							<div class="gallery-overlay">
 								<h3>{img.title}</h3>
 								<p>{img.desc}</p>
@@ -54,7 +72,7 @@ try {
 	<!-- Modal for enlarged images -->
 	<div id="imageModal" class="modal">
 		<span class="close">&times;</span>
-		<img class="modal-content" id="modalImage">
+		<img class="modal-content" id="modalImage" loading="lazy" decoding="async">
 		<div class="modal-caption" id="modalCaption"></div>
 	</div>
 </Layout>
@@ -121,6 +139,9 @@ try {
 		grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
 		gap: 1.5rem;
 	}
+	.gallery-grid.single {
+		grid-template-columns: 1fr;
+	}
 
 	.gallery-item {
 		position: relative;
@@ -146,6 +167,12 @@ try {
 
 	.gallery-item:hover img {
 		transform: scale(1.05);
+	}
+	.gallery-item.single {
+		height: 80vh;
+	}
+	.gallery-item.single img {
+		object-fit: contain;
 	}
 
 	.gallery-overlay {
@@ -293,6 +320,13 @@ try {
 						item.classList.add('hidden');
 					}
 				});
+				const grid = document.querySelector('.gallery-grid');
+				const visibleItems = Array.from(galleryItems).filter(i => !i.classList.contains('hidden'));
+				grid.classList.toggle('single', visibleItems.length === 1);
+				galleryItems.forEach(i => i.classList.remove('single'));
+				if (visibleItems.length === 1) {
+					visibleItems[0].classList.add('single');
+				}
 			});
 		});
 

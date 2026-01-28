@@ -10,23 +10,6 @@ display_url: https://fbla-website.netlify.app
 logo_url: https://fbla-website.netlify.app/images/fbla-logo.png
 
 collections:
-  - name: "press"
-    label: "Press & News"
-    folder: "src/content/press"
-    create: true
-    slug: "{{slug}}"
-    fields:
-      - { label: "Title", name: "title", widget: "string" }
-      - { label: "Description", name: "description", widget: "text" }
-      - { label: "Publish Date", name: "publishDate", widget: "datetime" }
-      - { label: "Author", name: "author", widget: "string", required: false }
-      - { label: "Featured Image", name: "image", widget: "image", required: false }
-      - { label: "Image Alt Text", name: "imageAlt", widget: "string", required: false }
-      - { label: "Category", name: "category", widget: "select", options: ["news", "press-release", "achievement", "event"] }
-      - { label: "Featured", name: "featured", widget: "boolean", default: false }
-      - { label: "Tags", name: "tags", widget: "list", required: false }
-      - { label: "Body", name: "body", widget: "markdown" }
-
   - name: "events"
     label: "Events"
     folder: "src/content/events"
@@ -64,24 +47,6 @@ collections:
       - { label: "Achievements", name: "achievements", widget: "list", required: false }
       - { label: "Goals", name: "goals", widget: "list", required: false }
       - { label: "Display Order", name: "order", widget: "number", value_type: "int", default: 0 }
-      - { label: "Body", name: "body", widget: "markdown" }
-
-  - name: "success"
-    label: "Success Stories"
-    folder: "src/content/success"
-    create: true
-    slug: "{{slug}}"
-    fields:
-      - { label: "Title", name: "title", widget: "string" }
-      - { label: "Description", name: "description", widget: "text" }
-      - { label: "Date", name: "date", widget: "datetime" }
-      - { label: "Category", name: "category", widget: "select", options: ["competition", "scholarship", "leadership", "service", "recognition"] }
-      - { label: "Image", name: "image", widget: "image", required: false }
-      - { label: "Image Alt Text", name: "imageAlt", widget: "string", required: false }
-      - { label: "Participants", name: "participants", widget: "list", required: false }
-      - { label: "Award", name: "award", widget: "string", required: false }
-      - { label: "Level", name: "level", widget: "select", options: ["local", "regional", "state", "national"], required: false }
-      - { label: "Featured", name: "featured", widget: "boolean", default: false }
       - { label: "Body", name: "body", widget: "markdown" }
 
   - name: "gallery"

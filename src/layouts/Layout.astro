@@ -6,6 +6,8 @@ export interface Props {
 
 const { title = "FBLA Chapter", description = "Future Business Leaders of America Chapter Website" } = Astro.props;
 // Updated header layout with responsive navigation
+import { Image } from 'astro:assets';
+import logoImage from '../assets/logo.png';
 ---
 
 <!doctype html>
@@ -17,6 +19,9 @@ const { title = "FBLA Chapter", description = "Future Business Leaders of Americ
 		<meta name="generator" content={Astro.generator} />
 		<meta name="description" content={description} />
 		<title>{title}</title>
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 	</head>
 	<body>
 		<header class="header">
@@ -24,7 +29,7 @@ const { title = "FBLA Chapter", description = "Future Business Leaders of Americ
 				<div class="nav-container">
 					<div class="nav-brand">
 						<a href="/" class="nav-logo" aria-label="FBLA Chapter Home">
-							<img src="/logo.png" alt="FBLA Logo" class="logo-img" />
+							<Image src={logoImage} alt="FBLA Logo" class="logo-img" loading="eager" decoding="async" />
 						</a>
 					</div>
 					<button 
@@ -41,7 +46,6 @@ const { title = "FBLA Chapter", description = "Future Business Leaders of Americ
 					<ul class="nav-menu" id="nav-menu" role="menubar">
 						<li role="none"><a href="/" role="menuitem" tabindex="0">Home</a></li>
 						<li role="none"><a href="/officer-team" role="menuitem" tabindex="0">Team</a></li>
-						<li role="none"><a href="/success" role="menuitem" tabindex="0">Success</a></li>
 						<li role="none" class="dropdown">
 							<a href="#" role="menuitem" tabindex="0" class="dropdown-toggle" aria-haspopup="true" aria-expanded="false">
 								Pathways
@@ -54,8 +58,8 @@ const { title = "FBLA Chapter", description = "Future Business Leaders of Americ
 						</li>
 						<li role="none"><a href="/gallery" role="menuitem" tabindex="0">Gallery</a></li>
 						<li role="none"><a href="/competitive-resources" role="menuitem" tabindex="0">Resources</a></li>
-						<li role="none"><a href="/faq" role="menuitem" tabindex="0">FAQ</a></li>
-						<li role="none"><a href="/contact" role="menuitem" tabindex="0">Contact</a></li>
+						<li role="none"><a href="/#faq" role="menuitem" tabindex="0">FAQ</a></li>
+						<li role="none"><a href="/#contact" role="menuitem" tabindex="0">Contact</a></li>
 					</ul>
 				</div>
 			</nav>
@@ -68,7 +72,7 @@ const { title = "FBLA Chapter", description = "Future Business Leaders of Americ
 				<div class="footer-content">
 					<div class="footer-section logo-section">
 						<div class="footer-logo">
-							<img src="/logo.png" alt="FBLA Logo" class="footer-logo-img">
+							<Image src={logoImage} alt="FBLA Logo" class="footer-logo-img" loading="lazy" decoding="async" />
 						</div>
 					</div>
 					<div class="footer-section contact-section">
@@ -188,10 +192,21 @@ const { title = "FBLA Chapter", description = "Future Business Leaders of Americ
 		box-sizing: border-box;
 	}
 
+	html {
+		scroll-behavior: smooth;
+	}
+
 	body {
-		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+		font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 		line-height: 1.6;
-		color: #333;
+		color: #1e293b;
+		-webkit-font-smoothing: antialiased;
+		-moz-osx-font-smoothing: grayscale;
+	}
+
+	::selection {
+		background: #3b82f6;
+		color: white;
 	}
 
 	.header {
@@ -227,14 +242,14 @@ const { title = "FBLA Chapter", description = "Future Business Leaders of Americ
 		transition: color 0.3s ease;
 		display: flex;
 		align-items: center;
-		border-radius: 4px;
+		border-radius: 12px;
 		padding: 0.5rem;
 	}
 
 	.logo-img {
 		height: 50px;
 		width: auto;
-		border-radius: 4px;
+		border-radius: 12px;
 	}
 
 	.nav-logo:hover,
@@ -251,7 +266,7 @@ const { title = "FBLA Chapter", description = "Future Business Leaders of Americ
 		border: none;
 		cursor: pointer;
 		padding: 0.5rem;
-		border-radius: 4px;
+		border-radius: 12px;
 		transition: background-color 0.3s ease;
 	}
 
@@ -300,8 +315,8 @@ const { title = "FBLA Chapter", description = "Future Business Leaders of Americ
 	.nav-menu a {
 		color: white;
 		text-decoration: none;
-		padding: 0.75rem 1rem;
-		border-radius: 6px;
+		padding: 0.75rem 1.25rem;
+		border-radius: 50px;
 		transition: all 0.3s ease;
 		font-weight: 500;
 		position: relative;
@@ -359,7 +374,7 @@ const { title = "FBLA Chapter", description = "Future Business Leaders of Americ
 		left: 0;
 		background: #1f2937;
 		border: 1px solid #374151;
-		border-radius: 8px;
+		border-radius: 16px;
 		box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
 		list-style: none;
 		margin: 0;
@@ -370,6 +385,7 @@ const { title = "FBLA Chapter", description = "Future Business Leaders of Americ
 		transform: translateY(-10px);
 		transition: all 0.3s ease;
 		z-index: 9999;
+		overflow: hidden;
 	}
 
 	.dropdown:hover .dropdown-menu {
@@ -463,7 +479,7 @@ const { title = "FBLA Chapter", description = "Future Business Leaders of Americ
 		align-items: center;
 		gap: 0.5rem;
 		padding: 0.5rem;
-		border-radius: 6px;
+		border-radius: 12px;
 		transition: all 0.3s;
 	}
 
@@ -481,7 +497,7 @@ const { title = "FBLA Chapter", description = "Future Business Leaders of Americ
 		align-items: center;
 		gap: 0.5rem;
 		padding: 0.5rem;
-		border-radius: 6px;
+		border-radius: 12px;
 		transition: all 0.3s;
 	}
 

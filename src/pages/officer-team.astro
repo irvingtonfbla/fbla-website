@@ -1,5 +1,20 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import { Image } from 'astro:assets';
+import veerImage from '../assets/team/veer.jpg';
+import nainaImage from '../assets/team/naina.jpg';
+import poojhaImage from '../assets/team/poojha.JPG';
+import stefanieImage from '../assets/team/stefanie.JPG';
+import krishImage from '../assets/team/krish.jpg';
+import tanviImage from '../assets/team/tanvi.jpg';
+import evaImage from '../assets/team/eva.JPG';
+import vaishnaviImage from '../assets/team/vaishnavi.jpg';
+import avnitaImage from '../assets/team/pleasework.png';
+import rahulImage from '../assets/team/rahul.jpg';
+import advikaImage from '../assets/team/advika.jpg';
+import neelImage from '../assets/team/neel.jpg';
+import harshithImage from '../assets/team/harshith.jpg';
+import aratrikaImage from '../assets/team/aratrika.jpg';
 ---
 
 <Layout title="Officer Team - FBLA Chapter" description="Meet our dedicated FBLA chapter officers and leadership team">
@@ -15,7 +30,7 @@ import Layout from '../layouts/Layout.astro';
 			<div class="officers-grid">
 				<div class="officer-card">
 					<div class="officer-image">
-						<img src="/team/veer (2).jpg" alt="President" loading="lazy" decoding="async" />
+						<Image src={veerImage} alt="President" loading="eager" fetchpriority="high" decoding="async" />
 					</div>
 					<div class="officer-info">
 						<h3>Veer Mistry</h3>
@@ -26,7 +41,7 @@ import Layout from '../layouts/Layout.astro';
 
 				<div class="officer-card">
 					<div class="officer-image">
-						<img src="/team/naina.jpg" alt="Vice President of Logistics" loading="lazy" decoding="async" />
+						<Image src={nainaImage} alt="Vice President of Logistics" loading="eager" fetchpriority="high" decoding="async" />
 					</div>
 					<div class="officer-info">
 						<h3>Naina Akkati</h3>
@@ -37,7 +52,7 @@ import Layout from '../layouts/Layout.astro';
 
 				<div class="officer-card">
 					<div class="officer-image">
-						<img src="/team/poojha.JPG" alt="Director of Logistics" loading="lazy" decoding="async" />
+						<Image src={poojhaImage} alt="Director of Logistics" loading="eager" fetchpriority="high" decoding="async" />
 					</div>
 					<div class="officer-info">
 						<h3>Poojha Suresh Kumar</h3>
@@ -48,7 +63,7 @@ import Layout from '../layouts/Layout.astro';
 
 				<div class="officer-card">
 					<div class="officer-image">
-						<img src="/team/stefanie.JPG" alt="Vice President of Competitions" loading="lazy" decoding="async" />
+						<Image src={stefanieImage} alt="Vice President of Competitions" loading="eager" fetchpriority="high" decoding="async" />
 					</div>
 					<div class="officer-info">
 						<h3>Stefanie Da Cruz</h3>
@@ -59,7 +74,7 @@ import Layout from '../layouts/Layout.astro';
 
 				<div class="officer-card">
 					<div class="officer-image">
-						<img src="/team/krish.jpg" alt="Director of Competitions" loading="lazy" decoding="async" />
+						<Image src={krishImage} alt="Director of Competitions" loading="eager" fetchpriority="high" decoding="async" />
 					</div>
 					<div class="officer-info">
 						<h3>Krish Kowkuntla</h3>
@@ -70,7 +85,7 @@ import Layout from '../layouts/Layout.astro';
 
 				<div class="officer-card">
 					<div class="officer-image">
-						<img src="/team/tanvi.jpg" alt="Director of Competitions" loading="lazy" decoding="async" />
+						<Image src={tanviImage} alt="Director of Competitions" loading="eager" fetchpriority="high" decoding="async" />
 					</div>
 					<div class="officer-info">
 						<h3>Tanvi Sardana</h3>
@@ -81,7 +96,7 @@ import Layout from '../layouts/Layout.astro';
 
 				<div class="officer-card">
 					<div class="officer-image">
-						<img src="/team/eva.JPG" alt="Director of Comps" loading="lazy" decoding="async" />
+						<Image src={evaImage} alt="Director of Comps" loading="lazy" decoding="async" />
 					</div>
 					<div class="officer-info">
 						<h3>Eva Arya</h3>
@@ -92,7 +107,7 @@ import Layout from '../layouts/Layout.astro';
 
 				<div class="officer-card">
 					<div class="officer-image">
-						<img src="/team/vaishnavi.jpg" alt="Vice President of Outreach" loading="lazy" decoding="async" />
+						<Image src={vaishnaviImage} alt="Vice President of Outreach" loading="lazy" decoding="async" />
 					</div>
 					<div class="officer-info">
 						<h3>Vaishnavi Polavarapu</h3>
@@ -103,7 +118,7 @@ import Layout from '../layouts/Layout.astro';
 
 				<div class="officer-card">
 					<div class="officer-image">
-						<img src="/team/pleasework.png" alt="Director of External Outreach" class="avnita-image" loading="lazy" decoding="async" />
+						<Image src={avnitaImage} alt="Director of External Outreach" class="avnita-image" loading="lazy" decoding="async" />
 					</div>
 					<div class="officer-info">
 						<h3>Avnita</h3>
@@ -114,7 +129,7 @@ import Layout from '../layouts/Layout.astro';
 
 				<div class="officer-card">
 					<div class="officer-image">
-						<img src="/team/rahul.jpg" alt="Director of Internal Outreach" loading="lazy" decoding="async" />
+						<Image src={rahulImage} alt="Director of Internal Outreach" loading="lazy" decoding="async" />
 					</div>
 					<div class="officer-info">
 						<h3>Rahul M. Rajkumar</h3>
@@ -125,7 +140,7 @@ import Layout from '../layouts/Layout.astro';
 
 				<div class="officer-card">
 					<div class="officer-image">
-						<img src="/team/advika.jpg" alt="Vice President of Programs" loading="lazy" decoding="async" />
+						<Image src={advikaImage} alt="Vice President of Programs" loading="lazy" decoding="async" />
 					</div>
 					<div class="officer-info">
 						<h3>Advika Anand</h3>
@@ -136,7 +151,7 @@ import Layout from '../layouts/Layout.astro';
 
 				<div class="officer-card">
 					<div class="officer-image">
-						<img src="/team/neel.jpg" alt="Director of Programs" loading="lazy" decoding="async" />
+						<Image src={neelImage} alt="Director of Programs" loading="lazy" decoding="async" />
 					</div>
 					<div class="officer-info">
 						<h3>Neel Bhimani</h3>
@@ -147,7 +162,7 @@ import Layout from '../layouts/Layout.astro';
 
 				<div class="officer-card">
 					<div class="officer-image">
-						<img src="/team/harshith.jpg" alt="Director of Programs" loading="lazy" decoding="async" />
+						<Image src={harshithImage} alt="Director of Programs" loading="lazy" decoding="async" />
 					</div>
 					<div class="officer-info">
 						<h3>Harshith Sai</h3>
@@ -158,29 +173,13 @@ import Layout from '../layouts/Layout.astro';
 
 				<div class="officer-card">
 					<div class="officer-image">
-						<img src="/team/aratrika.jpg" alt="Intern" loading="lazy" decoding="async" />
+						<Image src={aratrikaImage} alt="Intern" loading="lazy" decoding="async" />
 					</div>
 					<div class="officer-info">
 						<h3>Aratrika Pal</h3>
 						<h4>Intern</h4>
 						<p>I'm a logistics intern for FBLA, and help to create and fill out forms for the club. I placed in Intro to IT last year.</p>
 					</div>
-				</div>
-			</div>
-		</div>
-	</section>
-
-	<section class="advisor">
-		<div class="container">
-			<h2>Chapter Advisor</h2>
-			<div class="advisor-card">
-				<div class="advisor-image">
-					<img src="/team/advisor.jpg" alt="Chapter Advisor" loading="lazy" decoding="async" />
-				</div>
-				<div class="advisor-info">
-					<h3>Mr. Albizo</h3>
-					<h4>Business Education Teacher & FBLA Advisor</h4>
-					<p>Mr. Albizo has been our dedicated FBLA advisor for 8 years. He brings extensive business experience and passion for developing future leaders. Under his guidance, our chapter has achieved numerous state and national recognitions.</p>
 				</div>
 			</div>
 		</div>
@@ -282,88 +281,6 @@ import Layout from '../layouts/Layout.astro';
 		text-decoration: underline;
 	}
 
-	.advisor {
-		padding: 4rem 0;
-		background: #f8fafc;
-	}
-
-	.advisor h2 {
-		text-align: center;
-		margin-bottom: 3rem;
-		font-size: 2.5rem;
-		color: #1e3a8a;
-	}
-
-	.advisor-card {
-		display: grid;
-		grid-template-columns: 300px 1fr;
-		gap: 3rem;
-		background: white;
-		border-radius: 12px;
-		box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-		overflow: hidden;
-		max-width: 800px;
-		margin: 0 auto;
-	}
-
-	.advisor-image {
-		height: 300px;
-		overflow: hidden;
-	}
-
-	.advisor-image img {
-		width: 100%;
-		height: 100%;
-		object-fit: cover;
-	}
-
-	.advisor-info {
-		padding: 2rem;
-		display: flex;
-		flex-direction: column;
-		justify-content: center;
-	}
-
-	.advisor-info h3 {
-		font-size: 1.75rem;
-		color: #1e3a8a;
-		margin-bottom: 0.5rem;
-	}
-
-	.advisor-info h4 {
-		font-size: 1.125rem;
-		color: #3b82f6;
-		margin-bottom: 1rem;
-		font-weight: 600;
-	}
-
-	.advisor-info p {
-		line-height: 1.6;
-		margin-bottom: 1.5rem;
-		color: #4b5563;
-	}
-
-	.advisor-contact {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-	}
-
-	.advisor-contact a {
-		color: #3b82f6;
-		text-decoration: none;
-		font-weight: 500;
-	}
-
-	.advisor-contact a:hover {
-		text-decoration: underline;
-	}
-
-	.advisor-contact span {
-		color: #6b7280;
-		font-size: 0.875rem;
-	}
-
 	@media (max-width: 768px) {
 		.page-header h1 {
 			font-size: 2rem;
@@ -371,15 +288,6 @@ import Layout from '../layouts/Layout.astro';
 
 		.officers-grid {
 			grid-template-columns: 1fr;
-		}
-
-		.advisor-card {
-			grid-template-columns: 1fr;
-			text-align: center;
-		}
-
-		.advisor-image {
-			height: 250px;
 		}
 	}
 </style>

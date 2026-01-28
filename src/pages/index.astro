@@ -1,16 +1,29 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
+import { Image } from 'astro:assets';
+import heroImage from '../assets/hero.JPG';
+import logoImage from '../assets/logo.png';
+import fs from 'node:fs';
 
-const slcDirUrl = new URL('../../public/gallery/slc2025', import.meta.url);
-let homeImages = [];
-try {
-  const dirPath = fileURLToPath(slcDirUrl);
-  const files = fs.readdirSync(dirPath).filter((f) => /\.(jpe?g|png|webp)$/i.test(f));
-  files.sort();
-  homeImages = files.slice(0, 6).map((f) => `/gallery/slc2025/${f}`);
-} catch {}
+const galleryRoot = new URL('../../public/gallery/', import.meta.url);
+const categories = ['nlc2024', 'slc2024', 'slc2025'] as const;
+function readImages(cat: (typeof categories)[number]) {
+  const dir = new URL(`./${cat}/`, galleryRoot);
+  let files: string[] = [];
+  try {
+    files = fs.readdirSync(dir).filter((f) => /\.(jpe?g|png|webp|gif)$/i.test(f));
+  } catch {
+    files = [];
+  }
+  return files.map((f) => `/gallery/${cat}/${f}`);
+}
+let homeImages = categories.flatMap((c) => readImages(c));
+
+if (homeImages.length === 0) {
+    homeImages = [heroImage, logoImage, heroImage, logoImage, heroImage, logoImage];
+} else {
+    homeImages = homeImages.slice(0, 6);
+}
 ---
 
 <Layout title="Home - FBLA Chapter" description="Welcome to our Future Business Leaders of America chapter website">
@@ -28,11 +41,9 @@ try {
 				<div class="gallery-container">
 					<div class="gallery-slides">
 						<div class="slide active">
-							<img src="/hero.JPG" alt="Hero Photo" fetchpriority="high" decoding="async" onerror="this.onerror=null; this.src='/logo.png';" />
+							<Image src={heroImage} alt="Hero Photo" fetchpriority="high" loading="eager" decoding="async" />
 						</div>
 					</div>
-					<button class="gallery-nav prev" onclick="changeSlide(-1)">‹</button>
-					<button class="gallery-nav next" onclick="changeSlide(1)">›</button>
 				</div>
 			</div>
 		</div>
@@ -73,11 +84,13 @@ try {
 			<h2>Our Chapter in Action</h2>
 			<p class="gallery-subtitle">Capturing moments from our conferences, competitions, and community events</p>
 			<div class="gallery-grid">
-				{(homeImages.length ? homeImages : ['/hero.JPG','/logo.png','/hero.JPG','/logo.png','/hero.JPG','/logo.png'])
-					.slice(0, 6)
-					.map((src) => (
+				{homeImages.map((src) => (
 						<div class="gallery-item">
-							<img src={src} alt="SLC 2025" loading="lazy" decoding="async" onerror="this.onerror=null; this.src='/logo.png';" />
+							{typeof src === 'string' ? (
+								<Image src={src} alt="Gallery" loading="lazy" decoding="async" width={600} height={400} />
+							) : (
+								<Image src={src} alt="Gallery" loading="lazy" decoding="async" />
+							)}
 						</div>
 					))}
 			</div>
@@ -87,257 +100,240 @@ try {
 		</div>
 	</section>
 
-	<section class="events-fbla">
+	<section class="info-section" id="faq">
 		<div class="container">
-			<h2>Events @ FBLA</h2>
-			<p class="events-subtitle">Discover the exciting LOOP activities and programs that make our chapter special</p>
-			<div class="events-fbla-grid">
-				<div class="event-fbla-card">
-					<div class="event-fbla-icon">
-						<svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-							<path d="M12 2L13.09 8.26L20 9L13.09 9.74L12 16L10.91 9.74L4 9L10.91 8.26L12 2Z" fill="#3b82f6"/>
-						</svg>
+			<div class="info-grid">
+				<div class="info-column">
+					<h2>Frequently Asked Questions</h2>
+					<div class="faq-list">
+						<div class="faq-item">
+							<button class="faq-question">
+								<span>What is FBLA?</span>
+								<span class="faq-icon">
+									<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+										<polyline points="6 9 12 15 18 9"></polyline>
+									</svg>
+								</span>
+							</button>
+							<div class="faq-answer">
+								<p>Future Business Leaders of America (FBLA) is a career and technical student organization that helps students prepare for careers in business through academic competitions, leadership development, and community service.</p>
+							</div>
+						</div>
+
+						<div class="faq-item">
+							<button class="faq-question">
+								<span>How do I join FBLA?</span>
+								<span class="faq-icon">
+									<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+										<polyline points="6 9 12 15 18 9"></polyline>
+									</svg>
+								</span>
+							</button>
+							<div class="faq-answer">
+								<p>Join us at our weekly meetings! We welcome students of all grade levels who are interested in business and leadership development.</p>
+							</div>
+						</div>
+
+						<div class="faq-item">
+							<button class="faq-question">
+								<span>What competitions does FBLA offer?</span>
+								<span class="faq-icon">
+									<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+										<polyline points="6 9 12 15 18 9"></polyline>
+									</svg>
+								</span>
+							</button>
+							<div class="faq-answer">
+								<p>FBLA offers over 70 competitive events in areas such as accounting, marketing, business law, entrepreneurship, computer applications, and public speaking. Competitions are held at regional, state, and national levels.</p>
+							</div>
+						</div>
+
+						<div class="faq-item">
+							<button class="faq-question">
+								<span>When are meetings held?</span>
+								<span class="faq-icon">
+									<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+										<polyline points="6 9 12 15 18 9"></polyline>
+									</svg>
+								</span>
+							</button>
+							<div class="faq-answer">
+								<p>Meetings are usually held at Norse Hall unless specified otherwise. Check announcements for updates.</p>
+							</div>
+						</div>
+
+						<div class="faq-item">
+							<button class="faq-question">
+								<span>Are there membership fees?</span>
+								<span class="faq-icon">
+									<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+										<polyline points="6 9 12 15 18 9"></polyline>
+									</svg>
+								</span>
+							</button>
+							<div class="faq-answer">
+								<p>Yes. Fees differ for CTE vs non-CTE students. Check Viking Vendor for current pricing and payment details.</p>
+							</div>
+						</div>
+
+						<div class="faq-item">
+							<button class="faq-question">
+								<span>What are the benefits of joining FBLA?</span>
+								<span class="faq-icon">
+									<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+										<polyline points="6 9 12 15 18 9"></polyline>
+									</svg>
+								</span>
+							</button>
+							<div class="faq-answer">
+								<p>FBLA membership provides leadership development opportunities, networking with business professionals, scholarship opportunities, college and career preparation, and the chance to compete at state and national levels.</p>
+							</div>
+						</div>
+
+						<div class="faq-item">
+							<button class="faq-question">
+								<span>How can I prepare for competitions?</span>
+								<span class="faq-icon">
+									<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+										<polyline points="6 9 12 15 18 9"></polyline>
+									</svg>
+								</span>
+							</button>
+							<div class="faq-answer">
+								<p>Use the study guides and practice tests on our Resources tab. We also provide mentoring and prep sessions.</p>
+								<p><a href="/competitive-resources">Go to Resources</a></p>
+							</div>
+						</div>
+
+						<div class="faq-item">
+							<button class="faq-question">
+								<span>Can I participate in multiple events?</span>
+								<span class="faq-icon">
+									<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+										<polyline points="6 9 12 15 18 9"></polyline>
+									</svg>
+								</span>
+							</button>
+							<div class="faq-answer">
+								<p>Yes, you can participate in up to two events. Scheduling rules may apply during competition days.</p>
+							</div>
+						</div>
 					</div>
-					<h3>Leadership Development</h3>
-					<p>Participate in workshops, seminars, and training sessions designed to enhance your leadership skills and business acumen.</p>
 				</div>
-				<div class="event-fbla-card">
-					<div class="event-fbla-icon">
-						<svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-							<path d="M16 6L18.29 8.29L13.41 13.17L9.41 9.17L2 16.59L3.41 18L9.41 12L13.41 16L20.71 8.71L23 11V6H16Z" fill="#3b82f6"/>
-						</svg>
+
+				<div class="info-column" id="contact">
+					<h2>Get in Touch</h2>
+					<p class="contact-subtitle">Have questions? Message us on Instagram!</p>
+					
+					<div class="contact-cards-grid">
+						<div class="contact-card">
+							<div class="contact-icon">
+								<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+									<rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+									<path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+									<line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+								</svg>
+							</div>
+							<div class="contact-details">
+								<h4>Follow Us</h4>
+								<div class="social-links">
+									<a href="https://www.instagram.com/irvingtonfbla" target="_blank" rel="noopener noreferrer">@irvingtonfbla</a>
+									<br>
+									<a href="https://www.facebook.com/groups/irvingtonfbla" target="_blank" rel="noopener noreferrer">Irvington FBLA</a>
+								</div>
+							</div>
+						</div>
+
+						<div class="contact-card">
+							<div class="contact-icon">
+								<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+									<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+									<polyline points="22,6 12,13 2,6"></polyline>
+								</svg>
+							</div>
+							<div class="contact-details">
+								<h4>Email Us</h4>
+								<p><a href="mailto:irvingtonfbla@gmail.com">irvingtonfbla@gmail.com</a></p>
+							</div>
+						</div>
+
+						<div class="contact-card">
+							<div class="contact-icon">
+								<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+									<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+									<circle cx="12" cy="10" r="3"></circle>
+								</svg>
+							</div>
+							<div class="contact-details">
+								<h4>Visit Us</h4>
+								<p>Irvington High School<br>41800 Blacow Rd<br>Fremont, CA 94538</p>
+							</div>
+						</div>
+
+						<div class="contact-card">
+							<div class="contact-icon">
+								<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+									<circle cx="12" cy="12" r="10"></circle>
+									<polyline points="12 6 12 12 16 14"></polyline>
+								</svg>
+							</div>
+							<div class="contact-details">
+								<h4>Meeting Times</h4>
+								<p>Fridays after school, 3:30-4:30<br>(Check Insta for updates)</p>
+							</div>
+						</div>
 					</div>
-					<h3>Competitive Events</h3>
-					<p>Compete in business-related events at regional, state, and national levels to showcase your skills and knowledge.</p>
-				</div>
-				<div class="event-fbla-card">
-					<div class="event-fbla-icon">
-						<svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-							<path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 7.5V9M15 11.5C15.8 11.5 16.5 12.2 16.5 13S15.8 14.5 15 14.5 13.5 13.8 13.5 13 14.2 11.5 15 11.5M5 7V9L11 8.5V7L5 7ZM11 11.5C11.8 11.5 12.5 12.2 12.5 13S11.8 14.5 11 14.5 9.5 13.8 9.5 13 10.2 11.5 11 11.5M12 15L8 16V18L12 17L16 18V16L12 15Z" fill="#3b82f6"/>
-						</svg>
-					</div>
-					<h3>Community Service</h3>
-					<p>Give back to the community through organized service projects and volunteer opportunities that make a real difference.</p>
-				</div>
-				<div class="event-fbla-card">
-					<div class="event-fbla-icon">
-						<svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-							<path d="M20 6H16L14 4H10L8 6H4C2.9 6 2 6.9 2 8V18C2 19.1 2.9 20 4 20H20C21.1 20 22 19.1 22 18V8C22 6.9 21.1 6 20 6ZM20 18H4V8H20V18ZM12 9C10.3 9 9 10.3 9 12S10.3 15 12 15 15 13.7 15 12 13.7 9 12 9Z" fill="#3b82f6"/>
-						</svg>
-					</div>
-					<h3>Professional Networking</h3>
-					<p>Connect with business professionals, alumni, and industry leaders to build valuable relationships for your future career.</p>
-				</div>
-				<div class="event-fbla-card">
-					<div class="event-fbla-icon">
-						<svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-							<path d="M12 2L2 7L12 12L22 7L12 2ZM2 17L12 22L22 17M2 12L12 17L22 12" fill="#3b82f6"/>
-						</svg>
-					</div>
-					<h3>Business Workshops</h3>
-					<p>Attend hands-on workshops covering entrepreneurship, finance, marketing, and other essential business skills.</p>
-				</div>
-				<div class="event-fbla-card">
-					<div class="event-fbla-icon">
-						<svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-							<path d="M9 11H7V9H9V11ZM13 11H11V9H13V11ZM17 11H15V9H17V11ZM19 4H18V2H16V4H8V2H6V4H5C3.89 4 3.01 4.9 3.01 6L3 20C3 21.1 3.89 22 5 22H19C20.1 22 21 21.1 21 20V6C21 4.9 20.1 4 19 4ZM19 20H5V9H19V20Z" fill="#3b82f6"/>
-						</svg>
-					</div>
-					<h3>Conference Planning</h3>
-					<p>Help organize and participate in regional and state conferences, developing event management and coordination skills.</p>
 				</div>
 			</div>
 		</div>
 	</section>
-
-	<section class="upcoming-events">
-		<div class="container">
-			<h2>Upcoming Events</h2>
-			<div class="calendar">
-				<div class="calendar-header">
-					<button class="calendar-nav prev" id="calPrev">‹</button>
-					<div class="calendar-title" id="calTitle"></div>
-					<button class="calendar-nav next" id="calNext">›</button>
-				</div>
-				<div class="calendar-grid">
-					<div class="day-name">Sun</div>
-					<div class="day-name">Mon</div>
-					<div class="day-name">Tue</div>
-					<div class="day-name">Wed</div>
-					<div class="day-name">Thu</div>
-					<div class="day-name">Fri</div>
-					<div class="day-name">Sat</div>
-					<div id="calendarDays" class="days"></div>
-				</div>
-			</div>
-		</div>
-	</section>
-
 
 </Layout>
 
-<script>
-	let currentSlideIndex = 0;
-	const slides = document.querySelectorAll('.slide');
-	const totalSlides = slides.length;
-
-	function showSlide(index) {
-		// Remove active class from all slides
-		slides.forEach(slide => slide.classList.remove('active'));
-		
-		// Add active class to current slide
-		slides[index].classList.add('active');
-	}
-
-	function changeSlide(direction) {
-		currentSlideIndex += direction;
-		
-		if (currentSlideIndex >= totalSlides) {
-			currentSlideIndex = 0;
-		} else if (currentSlideIndex < 0) {
-			currentSlideIndex = totalSlides - 1;
-		}
-		
-		showSlide(currentSlideIndex);
-	}
-
-	function currentSlide(index) {
-		currentSlideIndex = index - 1;
-		showSlide(currentSlideIndex);
-	}
-
-	// Auto-advance slides every 8 seconds
-	setInterval(() => {
-		changeSlide(1);
-	}, 8000);
-
-	// Make functions global so they can be called from onclick attributes
-	window.changeSlide = changeSlide;
-	window.currentSlide = currentSlide;
-
-	// Counter animation for numbers section
-	function animateCounter(element) {
-		const target = parseInt(element.getAttribute('data-target'));
-		const duration = 2000; // 2 seconds
-		const increment = target / (duration / 16); // 60fps
-		let current = 0;
-
-		const timer = setInterval(() => {
-			current += increment;
-			if (current >= target) {
-				current = target;
-				clearInterval(timer);
-			}
-			element.textContent = Math.floor(current);
-		}, 16);
-	}
-
-	// Intersection Observer for counter animation
-	const observerOptions = {
-		threshold: 0.5,
-		rootMargin: '0px 0px -100px 0px'
-	};
-
-	const observer = new IntersectionObserver((entries) => {
-		entries.forEach(entry => {
-			if (entry.isIntersecting) {
-				const counters = entry.target.querySelectorAll('.counter');
-				counters.forEach(counter => {
-					if (!counter.classList.contains('animated')) {
-						counter.classList.add('animated');
-						animateCounter(counter);
-					}
-				});
-			}
-		});
-	}, observerOptions);
-
-	// Observe the numbers section
-	const numbersSection = document.querySelector('.numbers');
-	if (numbersSection) {
-		observer.observe(numbersSection);
-	}
-
-	const calTitleEl = document.getElementById('calTitle');
-	const calDaysEl = document.getElementById('calendarDays');
-	const calPrevEl = document.getElementById('calPrev');
-	const calNextEl = document.getElementById('calNext');
-	let calDate = new Date();
-
-	function renderCalendar() {
-		const year = calDate.getFullYear();
-		const month = calDate.getMonth();
-		const first = new Date(year, month, 1);
-		const startDay = first.getDay();
-		const daysInMonth = new Date(year, month + 1, 0).getDate();
-		const daysInPrev = new Date(year, month, 0).getDate();
-		if (calTitleEl) calTitleEl.textContent = first.toLocaleString(undefined, { month: 'long', year: 'numeric' });
-		if (!calDaysEl) return;
-		calDaysEl.innerHTML = '';
-		for (let i = 0; i < startDay; i++) {
-			const d = document.createElement('div');
-			d.className = 'cal-day other-month';
-			const num = document.createElement('div');
-			num.className = 'num';
-			num.textContent = String(daysInPrev - startDay + i + 1);
-			d.appendChild(num);
-			calDaysEl.appendChild(d);
-		}
-		const today = new Date();
-		for (let day = 1; day <= daysInMonth; day++) {
-			const d = document.createElement('div');
-			d.className = 'cal-day';
-			const num = document.createElement('div');
-			num.className = 'num';
-			num.textContent = String(day);
-			d.appendChild(num);
-			if (today.getFullYear() === year && today.getMonth() === month && today.getDate() === day) d.classList.add('today');
-			calDaysEl.appendChild(d);
-		}
-		const cells = 42;
-		const filled = startDay + daysInMonth;
-		for (let i = filled; i < cells; i++) {
-			const d = document.createElement('div');
-			d.className = 'cal-day other-month';
-			const num = document.createElement('div');
-			num.className = 'num';
-			num.textContent = String(i - filled + 1);
-			d.appendChild(num);
-			calDaysEl.appendChild(d);
-		}
-	}
-
-	if (calPrevEl) calPrevEl.addEventListener('click', () => { calDate.setMonth(calDate.getMonth() - 1); renderCalendar(); });
-	if (calNextEl) calNextEl.addEventListener('click', () => { calDate.setMonth(calDate.getMonth() + 1); renderCalendar(); });
-	if (calTitleEl && calDaysEl) renderCalendar();
-</script>
-
 <style>
 	.hero {
-		background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
-		color: white;
-		padding: 4rem 0;
-	}
-
-	.hero-container {
-		max-width: 1200px;
-		margin: 0 auto;
-		padding: 0 2rem;
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 3rem;
+		position: relative;
+		height: 100vh;
+		min-height: 500px;
+		background-color: white;
+		background-image: url('/bg.png');
+		background-size: cover;
+		background-position: center bottom;
+		background-repeat: no-repeat;
+		overflow: hidden;
+		display: flex;
 		align-items: center;
 	}
 
-	.hero-content h1 {
-		font-size: 3rem;
-		margin-bottom: 1rem;
+	.hero-container {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 2rem;
+		max-width: 1200px;
+		margin: 0 auto;
+		padding: 0 2rem 5rem 2rem;
+		width: 100%;
+		z-index: 2;
+	}
+
+	.hero-content {
+		color: white;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+	}
+
+	.hero h1 {
+		font-size: 3.5rem;
+		font-weight: 800;
 		line-height: 1.2;
+		margin-bottom: 1rem;
+		text-shadow: 0 2px 4px rgba(0,0,0,0.1);
 	}
 
 	.hero-subtitle {
-		font-size: 1.25rem;
-		margin-bottom: 2rem;
+		font-size: 1.5rem;
+		margin-bottom: 2.5rem;
 		opacity: 0.9;
 	}
 
@@ -347,42 +343,45 @@ try {
 	}
 
 	.btn {
-		padding: 0.75rem 1.5rem;
-		border-radius: 6px;
+		padding: 0.75rem 2rem;
+		border-radius: 50px;
 		text-decoration: none;
 		font-weight: 600;
 		transition: all 0.3s;
 		display: inline-block;
+		cursor: pointer;
 	}
 
 	.btn-primary {
-		background: white;
-		color: #1e3a8a;
+		background: #1e3a8a;
+		color: white;
+		border: none;
 	}
 
 	.btn-primary:hover {
-		background: #f1f5f9;
+		background: #2563eb;
 		transform: translateY(-2px);
+		box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
 	}
 
 	.btn-secondary {
-		background: transparent;
+		background: rgba(255,255,255,0.2);
 		color: white;
-		border: 2px solid white;
+		border: 1px solid rgba(255,255,255,0.4);
+		backdrop-filter: blur(10px);
 	}
 
 	.btn-secondary:hover {
 		background: white;
 		color: #1e3a8a;
+		transform: translateY(-2px);
+		box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 	}
 
 	.hero-gallery {
 		position: relative;
-	}
-
-	.gallery-container {
-		position: relative;
-		border-radius: 12px;
+		height: 400px;
+		border-radius: 32px;
 		overflow: hidden;
 		box-shadow: 0 20px 40px rgba(0,0,0,0.2);
 	}
@@ -501,16 +500,17 @@ try {
 
 	.stat {
 		text-align: center;
-		padding: 2rem 1.5rem;
-		background: #f8fafc;
-		border-radius: 12px;
-		box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+		padding: 2.5rem 2rem;
+		background: white;
+		border-radius: 24px;
+		box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+		border: 1px solid rgba(0,0,0,0.03);
 		transition: transform 0.3s, box-shadow 0.3s;
 	}
 
 	.stat:hover {
 		transform: translateY(-5px);
-		box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+		box-shadow: 0 20px 40px rgba(0,0,0,0.08);
 	}
 
 	.stat h3 {
@@ -572,15 +572,15 @@ try {
 	.gallery-item {
 		position: relative;
 		overflow: hidden;
-		border-radius: 12px;
-		box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+		border-radius: 24px;
+		box-shadow: 0 4px 6px rgba(0,0,0,0.05);
 		transition: transform 0.3s, box-shadow 0.3s;
 		aspect-ratio: 4/3;
 	}
 
 	.gallery-item:hover {
 		transform: translateY(-5px);
-		box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+		box-shadow: 0 20px 40px rgba(0,0,0,0.12);
 	}
 
 	.gallery-item img {
@@ -627,18 +627,30 @@ try {
 	}
 
 	.event-fbla-card {
-		padding: 2rem;
+		padding: 2.5rem;
 		background: white;
-		border-radius: 12px;
-		box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+		border-radius: 24px;
+		box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+		border: 1px solid rgba(0,0,0,0.03);
 		transition: transform 0.3s, box-shadow 0.3s;
 		text-align: center;
-		border-top: 4px solid #3b82f6;
+		position: relative;
+		overflow: hidden;
+	}
+
+	.event-fbla-card::before {
+		content: '';
+		position: absolute;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 6px;
+		background: #3b82f6;
 	}
 
 	.event-fbla-card:hover {
 		transform: translateY(-5px);
-		box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+		box-shadow: 0 20px 40px rgba(0,0,0,0.08);
 	}
 
 	.event-fbla-icon {
@@ -673,18 +685,19 @@ try {
 
 	.calendar {
 		background: white;
-		border-radius: 12px;
-		box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-		padding: 1.5rem;
+		border-radius: 24px;
+		box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+		padding: 2rem;
 		max-width: 800px;
 		margin: 0 auto;
+		border: 1px solid rgba(0,0,0,0.03);
 	}
 
 	.calendar-header {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		margin-bottom: 1rem;
+		margin-bottom: 2rem;
 	}
 
 	.calendar-title {
@@ -697,11 +710,14 @@ try {
 		background: #3b82f6;
 		color: white;
 		border: none;
-		border-radius: 8px;
-		width: 40px;
-		height: 40px;
+		border-radius: 12px;
+		width: 44px;
+		height: 44px;
 		cursor: pointer;
 		transition: transform 0.2s ease, box-shadow 0.2s ease;
+		display: flex;
+		align-items: center;
+		justify-content: center;
 	}
 
 	.calendar-nav:hover {
@@ -732,74 +748,206 @@ try {
 
 	.cal-day {
 		background: #f8fafc;
-		border-radius: 10px;
-		min-height: 85px;
-		padding: 0.5rem;
-		box-shadow: 0 2px 4px rgba(0,0,0,0.04);
-		position: relative;
-		transition: transform 0.2s ease, box-shadow 0.2s ease;
+		border-radius: 16px;
+		min-height: 90px;
+		padding: 0.75rem;
+		transition: all 0.2s ease;
+		border: 1px solid transparent;
 	}
 
 	.cal-day:hover {
+		background: white;
+		border-color: #3b82f6;
 		transform: translateY(-2px);
-		box-shadow: 0 6px 14px rgba(0,0,0,0.08);
+		box-shadow: 0 4px 6px rgba(59,130,246,0.1);
 	}
 
-	.cal-day.other-month {
-		opacity: 0.5;
+	.cal-day.empty {
+		background: transparent;
+		cursor: default;
 	}
 
-	.cal-day.today {
-		outline: 2px solid #3b82f6;
-		outline-offset: -2px;
+	.cal-day.empty:hover {
+		transform: none;
+		box-shadow: none;
+		border-color: transparent;
 	}
 
-	.cal-day .num {
+	.day-num {
+		font-weight: 600;
+		color: #4b5563;
+		margin-bottom: 0.25rem;
+	}
+
+	.event-dot {
+		height: 6px;
+		width: 6px;
+		border-radius: 50%;
+		background: #3b82f6;
+		display: inline-block;
+		margin-right: 2px;
+	}
+
+	.event-text {
+		font-size: 0.75rem;
+		color: #1e3a8a;
+		line-height: 1.2;
+		margin-top: 0.25rem;
+		display: block;
+	}
+
+	/* Hero Gallery Interaction */
+	.hero-gallery {
+		transition: transform 0.4s ease, box-shadow 0.4s ease;
+		cursor: pointer;
+	}
+
+	.hero-gallery:hover {
+		transform: scale(1.02);
+		box-shadow: 0 0 30px rgba(30, 58, 138, 0.6), 0 20px 40px rgba(0,0,0,0.2);
+	}
+
+	/* Info Section (FAQ & Contact) */
+	.info-section {
+		padding: 4rem 0;
+		background: #f8fafc;
+	}
+
+	.info-grid {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 4rem;
+		align-items: start;
+	}
+
+	.info-column h2 {
+		text-align: left;
+		margin-bottom: 2rem;
+		font-size: 2rem;
+		color: #1e3a8a;
+		font-weight: 700;
+	}
+
+	.faq-list {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+
+	.faq-item {
+		background: white;
+		border-radius: 16px;
+		overflow: hidden;
+		box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+		border: 1px solid rgba(0,0,0,0.05);
+		transition: all 0.3s ease;
+	}
+
+	.faq-item:hover {
+		box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+		transform: translateY(-2px);
+	}
+
+	.faq-question {
+		width: 100%;
+		padding: 1.25rem 1.5rem;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		background: none;
+		border: none;
+		text-align: left;
+		cursor: pointer;
+		font-size: 1.125rem;
 		font-weight: 600;
 		color: #1e3a8a;
+		transition: color 0.3s;
 	}
 
-	.events-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-		gap: 2rem;
-	}
-
-	.event-card {
-		display: flex;
-		gap: 1rem;
-		padding: 1.5rem;
-		background: white;
-		border-radius: 12px;
-		box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-		border-left: 4px solid #3b82f6;
-	}
-
-	.event-date {
-		text-align: center;
-		min-width: 60px;
-	}
-
-	.event-date .month {
-		display: block;
-		font-size: 0.875rem;
-		color: #6b7280;
-		text-transform: uppercase;
-	}
-
-	.event-date .day {
-		display: block;
+	.faq-icon {
 		font-size: 1.5rem;
-		font-weight: bold;
-		color: #1e3a8a;
+		font-weight: 300;
+		color: #3b82f6;
+		transition: transform 0.2s;
+		display: flex;
+		align-items: center;
 	}
 
-	.event-info h3 {
-		margin-bottom: 0.5rem;
-		color: #1e3a8a;
+	.faq-answer {
+		padding: 0 1.5rem;
+		max-height: 0;
+		overflow: hidden;
+		transition: max-height 0.3s ease-out, padding 0.3s ease-out;
 	}
 
+	.faq-answer.active {
+		padding: 0 1.5rem 1.5rem 1.5rem;
+		max-height: 200px;
+	}
 
+	.faq-item.active .faq-icon {
+		transform: rotate(45deg);
+	}
+
+	/* Contact Styles */
+	.contact-subtitle {
+		color: #6b7280;
+		margin-bottom: 2rem;
+		font-size: 1.125rem;
+		margin-top: -1rem;
+	}
+
+	.contact-cards-grid {
+		display: grid;
+		gap: 1.25rem;
+	}
+
+	.contact-card {
+		display: flex;
+		align-items: center;
+		padding: 1.25rem;
+		background: white;
+		border-radius: 20px;
+		transition: transform 0.3s, box-shadow 0.3s;
+		border: 1px solid rgba(0,0,0,0.03);
+		box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+	}
+
+	.contact-card:hover {
+		transform: translateY(-3px);
+		box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+	}
+
+	.contact-icon {
+		margin-right: 1.25rem;
+		background: #eff6ff;
+		width: 48px;
+		height: 48px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 50%;
+		color: #3b82f6;
+		flex-shrink: 0;
+	}
+
+	.contact-details h4 {
+		font-size: 1.1rem;
+		color: #1f2937;
+		margin-bottom: 0.25rem;
+		font-weight: 600;
+	}
+
+	.contact-details p, .contact-details a {
+		color: #6b7280;
+		line-height: 1.5;
+		text-decoration: none;
+		font-size: 0.95rem;
+	}
+
+	.contact-details a:hover {
+		color: #3b82f6;
+	}
 
 	@media (max-width: 768px) {
 		.hero-container {
@@ -807,65 +955,101 @@ try {
 			text-align: center;
 		}
 
-		.hero-content h1 {
-			font-size: 2rem;
+		.hero h1 {
+			font-size: 2.5rem;
 		}
 
 		.hero-buttons {
 			justify-content: center;
-			flex-wrap: wrap;
 		}
 
-		.gallery-slides {
-			height: 250px;
+		.hero-gallery {
+			height: 300px;
 		}
 
-		.gallery-nav {
-			width: 35px;
-			height: 35px;
-			font-size: 16px;
+		.about-content, .gallery-subtitle, .events-subtitle {
+			padding: 0 1rem;
 		}
 
-		.gallery-nav.prev {
-			left: 10px;
-		}
-
-		.gallery-nav.next {
-			right: 10px;
-		}
-
-		.gallery-grid {
-			grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+		.numbers-grid {
+			grid-template-columns: 1fr;
 			gap: 1rem;
 		}
 
-		.gallery h2 {
-			font-size: 2rem;
-		}
-
-		.events-fbla-grid {
+		.info-grid {
 			grid-template-columns: 1fr;
-			gap: 1.5rem;
+			gap: 3rem;
 		}
-
-		.events-fbla h2 {
-			font-size: 2rem;
+		
+		.info-column h2 {
+			text-align: center;
 		}
-
-		.event-fbla-card {
-			padding: 1.5rem;
-		}
-
-		.calendar {
-			padding: 1rem;
-		}
-
-		.calendar-grid {
-			gap: 0.5rem;
-		}
-
-		.cal-day {
-			min-height: 70px;
+		
+		.contact-subtitle {
+			text-align: center;
 		}
 	}
 </style>
+
+<script>
+	// Counter Animation
+	const observerOptions = {
+		root: null,
+		rootMargin: '0px',
+		threshold: 0.1
+	};
+
+	const observer = new IntersectionObserver((entries) => {
+		entries.forEach(entry => {
+			if (entry.isIntersecting) {
+				const counter = entry.target.querySelector('.counter');
+				if (counter && !counter.classList.contains('animated')) {
+					animateCounter(counter);
+					counter.classList.add('animated');
+				}
+			}
+		});
+	}, observerOptions);
+
+	document.querySelectorAll('.stat').forEach(stat => {
+		observer.observe(stat);
+	});
+
+	function animateCounter(el) {
+		const target = parseInt(el.getAttribute('data-target'));
+		const duration = 2000;
+		const step = target / (duration / 16);
+		let current = 0;
+
+		const timer = setInterval(() => {
+			current += step;
+			if (current >= target) {
+				el.textContent = target;
+				clearInterval(timer);
+			} else {
+				el.textContent = Math.floor(current);
+			}
+		}, 16);
+	}
+
+	// FAQ Functionality
+	document.querySelectorAll('.faq-question').forEach(button => {
+		button.addEventListener('click', () => {
+			const faqItem = button.parentElement;
+			const faqAnswer = faqItem.querySelector('.faq-answer');
+			const isActive = faqItem.classList.contains('active');
+
+			// Close all other FAQ items
+			document.querySelectorAll('.faq-item').forEach(item => {
+				if (item !== faqItem) {
+					item.classList.remove('active');
+					item.querySelector('.faq-answer').classList.remove('active');
+				}
+			});
+
+			// Toggle current item
+			faqItem.classList.toggle('active');
+			faqAnswer.classList.toggle('active');
+		});
+	});
+</script>

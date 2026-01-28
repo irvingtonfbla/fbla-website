@@ -1,5 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import { Image } from 'astro:assets';
+import chapterGroupImage from '../assets/gallery/gallery-1.jpg';
 ---
 
 <Layout title="About Us - FBLA Chapter" description="Learn about our FBLA chapter's mission, values, and what we stand for in business education and leadership development">
@@ -78,7 +80,7 @@ import Layout from '../layouts/Layout.astro';
 				</div>
 				
 				<div class="story-image">
-					<img src="/images/chapter-group.jpg" alt="FBLA Chapter Group Photo" />
+					<Image src={chapterGroupImage} alt="FBLA Chapter Group Photo" loading="lazy" decoding="async" />
 					<div class="image-caption">
 						<p>Our 2024 chapter members at the State Leadership Conference</p>
 					</div>
@@ -149,44 +151,6 @@ import Layout from '../layouts/Layout.astro';
 					</div>
 					<h3>Entrepreneurship</h3>
 					<p>Develop and pitch business ideas through our entrepreneurship program, with opportunities to compete and receive mentorship from local business owners.</p>
-				</div>
-			</div>
-		</div>
-	</section>
-
-	<section class="advisor-section">
-		<div class="container">
-			<h2>Meet Our Advisor</h2>
-			<div class="advisor-card">
-			<div class="advisor-image">
-				<img src="/images/advisor-martinez.jpg" alt="Mr. Albizo" />
-			</div>
-			<div class="advisor-info">
-				<h3>Mr. Albizo</h3>
-				<p class="advisor-title">Chapter Advisor & Business Education Teacher</p>
-					<p>Mrs. Martinez has been leading our FBLA chapter since 2015 and brings over 15 years of business education experience to our program. She holds an MBA in Business Administration and is passionate about helping students discover their potential in business and leadership.</p>
-					
-					<p>Under her guidance, our chapter has achieved remarkable success, including multiple state championships and consistent representation at the National Leadership Conference. Mrs. Martinez believes in hands-on learning and has established partnerships with over 20 local businesses to provide real-world experiences for our members.</p>
-					
-					<div class="advisor-credentials">
-						<div class="credential">
-							<strong>Education:</strong> MBA, Business Administration<br>
-							BS, Business Education
-						</div>
-						<div class="credential">
-							<strong>Experience:</strong> 15+ years in Business Education<br>
-							9 years as FBLA Chapter Advisor
-						</div>
-						<div class="credential">
-							<strong>Awards:</strong> State FBLA Advisor of the Year (2022)<br>
-							Outstanding Educator Award (2020)
-						</div>
-					</div>
-					
-					<div class="advisor-contact">
-						<p><strong>Office Hours:</strong> Monday-Friday, 3:00-4:00 PM</p>
-						<p><strong>Email:</strong> <a href="mailto:halbizo@fusdk12.net">halbizo@fusdk12.net</a></p>
-					</div>
 				</div>
 			</div>
 		</div>
@@ -406,89 +370,6 @@ import Layout from '../layouts/Layout.astro';
 		line-height: 1.6;
 	}
 
-	.advisor-section {
-		padding: 4rem 0;
-	}
-
-	.advisor-section h2 {
-		text-align: center;
-		font-size: 2.5rem;
-		color: #1e3a8a;
-		margin-bottom: 3rem;
-	}
-
-	.advisor-card {
-		display: grid;
-		grid-template-columns: 300px 1fr;
-		gap: 3rem;
-		background: white;
-		padding: 2rem;
-		border-radius: 12px;
-		box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-	}
-
-	.advisor-image img {
-		width: 100%;
-		height: 300px;
-		object-fit: cover;
-		border-radius: 8px;
-	}
-
-	.advisor-info h3 {
-		font-size: 1.75rem;
-		color: #1e3a8a;
-		margin-bottom: 0.5rem;
-	}
-
-	.advisor-title {
-		font-size: 1.1rem;
-		color: #3b82f6;
-		font-weight: 600;
-		margin-bottom: 1.5rem;
-	}
-
-	.advisor-info p {
-		color: #4b5563;
-		line-height: 1.6;
-		margin-bottom: 1.5rem;
-	}
-
-	.advisor-credentials {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-		gap: 1rem;
-		margin: 2rem 0;
-	}
-
-	.credential {
-		padding: 1rem;
-		background: #f8fafc;
-		border-radius: 8px;
-		font-size: 0.9rem;
-		color: #4b5563;
-	}
-
-	.advisor-contact {
-		padding: 1rem;
-		background: #eff6ff;
-		border-radius: 8px;
-		border-left: 4px solid #3b82f6;
-	}
-
-	.advisor-contact p {
-		margin-bottom: 0.5rem;
-		font-size: 0.95rem;
-	}
-
-	.advisor-contact a {
-		color: #3b82f6;
-		text-decoration: none;
-	}
-
-	.advisor-contact a:hover {
-		text-decoration: underline;
-	}
-
 	.join-us {
 		padding: 4rem 0;
 		background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
@@ -588,15 +469,6 @@ import Layout from '../layouts/Layout.astro';
 
 		.story-stats {
 			grid-template-columns: repeat(2, 1fr);
-		}
-
-		.advisor-card {
-			grid-template-columns: 1fr;
-			gap: 2rem;
-		}
-
-		.advisor-credentials {
-			grid-template-columns: 1fr;
 		}
 
 		.join-actions {

@@ -1,21 +1,5 @@
 import { defineCollection, z } from 'astro:content';
 
-// Define the schema for news/press releases
-const pressCollection = defineCollection({
-  type: 'content',
-  schema: z.object({
-    title: z.string(),
-    description: z.string(),
-    publishDate: z.date(),
-    author: z.string().optional(),
-    image: z.string().optional(),
-    imageAlt: z.string().optional(),
-    category: z.enum(['news', 'press-release', 'achievement', 'event']),
-    featured: z.boolean().default(false),
-    tags: z.array(z.string()).default([]),
-  }),
-});
-
 // Define the schema for events
 const eventsCollection = defineCollection({
   type: 'content',
@@ -53,23 +37,6 @@ const officersCollection = defineCollection({
   }),
 });
 
-// Define the schema for success stories/achievements
-const successCollection = defineCollection({
-  type: 'content',
-  schema: z.object({
-    title: z.string(),
-    description: z.string(),
-    date: z.date(),
-    category: z.enum(['competition', 'scholarship', 'leadership', 'service', 'recognition']),
-    image: z.string().optional(),
-    imageAlt: z.string().optional(),
-    participants: z.array(z.string()).default([]),
-    award: z.string().optional(),
-    level: z.enum(['local', 'regional', 'state', 'national']).optional(),
-    featured: z.boolean().default(false),
-  }),
-});
-
 // Define the schema for gallery items
 const galleryCollection = defineCollection({
   type: 'content',
@@ -102,10 +69,8 @@ const sponsorsCollection = defineCollection({
 
 // Export collections
 export const collections = {
-  'press': pressCollection,
   'events': eventsCollection,
   'officers': officersCollection,
-  'success': successCollection,
   'gallery': galleryCollection,
   'sponsors': sponsorsCollection,
 };

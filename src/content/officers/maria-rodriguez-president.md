@@ -64,7 +64,7 @@ Maria joined FBLA as a sophomore and quickly discovered her passion for entrepre
 
 Maria's winning business plan, "EcoPack Solutions," addresses the growing need for sustainable packaging alternatives. The plan outlines a company that converts agricultural waste into biodegradable packaging materials, demonstrating both environmental consciousness and business acumen.
 
-"The judges were impressed not just with the innovation, but with the thorough market research and realistic financial projections," said chapter advisor Mrs. Martinez. "Maria's plan shows real potential for implementation."
+"The judges were impressed not just with the innovation, but with the thorough market research and realistic financial projections," noted the judges. "Maria's plan shows real potential for implementation."
 
 ## Community Involvement
 
@@ -90,4 +90,4 @@ Maria is always available to help fellow FBLA members and answer questions about
 
 ---
 
-*"Maria exemplifies everything we hope to develop in our FBLA members – leadership, innovation, academic excellence, and a commitment to making a positive impact in her community."* - Mrs. Jennifer Martinez, Chapter Advisor
+*"Maria exemplifies everything we hope to develop in our FBLA members – leadership, innovation, academic excellence, and a commitment to making a positive impact in her community."* - Chapter Leadership Team

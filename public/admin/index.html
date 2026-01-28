@@ -76,29 +76,6 @@
     });
     
     // Custom preview templates
-    CMS.registerPreviewTemplate('press', function(props) {
-      const { entry, widgetFor, widgetsFor } = props;
-      const title = entry.getIn(['data', 'title']);
-      const description = entry.getIn(['data', 'description']);
-      const publishDate = entry.getIn(['data', 'publishDate']);
-      const category = entry.getIn(['data', 'category']);
-      const body = widgetFor('body');
-      
-      return `
-        <div style="max-width: 800px; margin: 0 auto; padding: 2rem; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
-          <div style="background: #3b82f6; color: white; padding: 1rem; border-radius: 8px 8px 0 0;">
-            <span style="background: rgba(255,255,255,0.2); padding: 0.25rem 0.75rem; border-radius: 4px; font-size: 0.875rem; text-transform: uppercase;">${category}</span>
-          </div>
-          <div style="background: white; padding: 2rem; border-radius: 0 0 8px 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-            <h1 style="color: #1e3a8a; margin-bottom: 1rem;">${title}</h1>
-            <p style="color: #6b7280; font-size: 0.875rem; margin-bottom: 1rem;">${new Date(publishDate).toLocaleDateString()}</p>
-            <p style="color: #4b5563; font-size: 1.125rem; margin-bottom: 2rem; font-style: italic;">${description}</p>
-            <div style="color: #374151; line-height: 1.7;">${body}</div>
-          </div>
-        </div>
-      `;
-    });
-    
     CMS.registerPreviewTemplate('events', function(props) {
       const { entry, widgetFor } = props;
       const title = entry.getIn(['data', 'title']);

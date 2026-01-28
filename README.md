@@ -27,7 +27,6 @@ A modern, responsive website for our FBLA chapter built with Astro and integrate
 │   │   ├── events/        # Event content files
 │   │   ├── gallery/       # Gallery content files
 │   │   ├── officers/      # Officer profile files
-│   │   ├── press/         # Press release files
 │   │   ├── sponsors/      # Sponsor information files
 │   │   └── success/       # Success story files
 │   ├── layouts/
@@ -82,11 +81,6 @@ A modern, responsive website for our FBLA chapter built with Astro and integrate
 
 ### Content Types
 
-#### Press Releases
-- **Location**: `/src/content/press/`
-- **Fields**: Title, description, publish date, category, featured status, author
-- **Usage**: News articles, announcements, media coverage
-
 #### Events
 - **Location**: `/src/content/events/`
 - **Fields**: Title, description, dates, location, category, registration info
@@ -96,11 +90,6 @@ A modern, responsive website for our FBLA chapter built with Astro and integrate
 - **Location**: `/src/content/officers/`
 - **Fields**: Name, position, grade, bio, contact info, achievements
 - **Usage**: Leadership team profiles and information
-
-#### Success Stories
-- **Location**: `/src/content/success/`
-- **Fields**: Title, description, date, category, featured status
-- **Usage**: Competition wins, member achievements, chapter milestones
 
 #### Gallery
 - **Location**: `/src/content/gallery/`
@@ -173,7 +162,7 @@ A modern, responsive website for our FBLA chapter built with Astro and integrate
 ## 📱 Pages Overview
 
 - **Home** (`/`): Hero section, about preview, upcoming events, sponsors
-- **About** (`/about`): Chapter mission, story, activities, advisor info
+- **About** (`/about`): Chapter mission, story, activities
 - **Officer Team** (`/officer-team`): Leadership profiles and contact information
 - **Success** (`/success`): Achievements, competition results, member spotlights
 - **Gallery** (`/gallery`): Photo galleries with filtering and modal views
@@ -224,10 +213,9 @@ A modern, responsive website for our FBLA chapter built with Astro and integrate
 
 ## 📞 Support
 
-For technical support or questions:
-- **Chapter Advisor**: Ms. Jennifer Thompson
-- **Technical Lead**: [Your Name]
-- **Email**: fbla@yourschool.edu
+For227→For technical support or questions:
+229→- **Technical Lead**: [Your Name]
+230→- **Email**: fbla@yourschool.edu
 
 ## 📄 License
 
