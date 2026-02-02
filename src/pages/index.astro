@@ -3,6 +3,8 @@ import Layout from '../layouts/Layout.astro';
 import { Image } from 'astro:assets';
 import heroImage from '../assets/hero.JPG';
 import gallery1 from '../assets/gallery/gallery1.JPG';
+import supersigma from '../assets/supersigma.jpg';
+import tuff from '../assets/tuff.jpg';
 import logoImage from '../assets/logo.png';
 import fs from 'node:fs';
 
@@ -72,6 +74,31 @@ if (homeImages.length === 0) {
 			<div class="about-content">
 				<p>Our FBLA chapter is dedicated to developing business and leadership skills in students through academic competitions, community service, and professional development opportunities.</p>
 				<p>We participate in state and national competitions, organize community service projects, and provide networking opportunities with business professionals.</p>
+			</div>
+		</div>
+	</section>
+
+	<section class="pathways">
+		<div class="container">
+			<div class="pathways-grid">
+				<a href="/pathways/loop" class="pathway-card">
+					<div class="card-bg">
+						<Image src={tuff} alt="LOOP Pathway" />
+					</div>
+					<div class="card-content">
+						<h3>LOOP</h3>
+						<span class="learn-more">Learn More</span>
+					</div>
+				</a>
+				<a href="/pathways/cte" class="pathway-card">
+					<div class="card-bg">
+						<Image src={supersigma} alt="CTE Pathway" />
+					</div>
+					<div class="card-content">
+						<h3>CTE</h3>
+						<span class="learn-more">Learn More</span>
+					</div>
+				</a>
 			</div>
 		</div>
 	</section>
@@ -320,6 +347,7 @@ if (homeImages.length === 0) {
 	}
 
 	.pathway-card {
+		display: block;
 		position: relative;
 		height: 400px;
 		border-radius: 20px;
@@ -363,13 +391,16 @@ if (homeImages.length === 0) {
 		flex-direction: column;
 		justify-content: flex-end;
 		padding: 2rem;
-		background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+		padding-bottom: 5rem;
+		box-sizing: border-box;
+		background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 50%, transparent 100%);
 	}
 
 	.card-content h3 {
 		font-size: 2.5rem;
 		margin-bottom: 1rem;
 		font-weight: 800;
+		text-shadow: 0 2px 4px rgba(0,0,0,0.3);
 	}
 
 	.learn-more {
@@ -378,8 +409,10 @@ if (homeImages.length === 0) {
 		border: 2px solid white;
 		border-radius: 30px;
 		font-weight: 600;
-		transition: background 0.3s, color 0.3s;
+		transition: all 0.3s;
 		width: fit-content;
+		position: relative;
+		z-index: 10;
 	}
 
 	.pathway-card:hover .learn-more {
