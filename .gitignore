@@ -26,6 +26,3 @@ pnpm-debug.log*
 # Large image folders (keep local only)
 drive-download-*/
 officer team/
-*.JPG
-*.jpeg
-*.heic
