@@ -7,14 +7,30 @@ import fs from 'node:fs';
 
 const galleryRoot = new URL('../../public/gallery/', import.meta.url);
 const categories = ['nlc2024', 'slc2024', 'slc2025'] as const;
+function getImagesRecursively(dir: URL, relativePath = ''): string[] {
+  let results: string[] = [];
+  try {
+    const list = fs.readdirSync(dir);
+    list.forEach((file) => {
+      const fullUrl = new URL(file, dir + (dir.href.endsWith('/') ? '' : '/'));
+      const stat = fs.statSync(fullUrl);
+      if (stat && stat.isDirectory()) {
+        results = results.concat(getImagesRecursively(new URL(file + '/', dir), relativePath + file + '/'));
+      } else {
+        if (/\.(jpe?g|png|webp|gif)$/i.test(file)) {
+          results.push(relativePath + file);
+        }
+      }
+    });
+  } catch (e) {
+    console.error(`Error reading directory ${dir}:`, e);
+  }
+  return results;
+}
+
 function readImages(cat: (typeof categories)[number]) {
   const dir = new URL(`./${cat}/`, galleryRoot);
-  let files: string[] = [];
-  try {
-    files = fs.readdirSync(dir).filter((f) => /\.(jpe?g|png|webp|gif)$/i.test(f));
-  } catch {
-    files = [];
-  }
+  const files = getImagesRecursively(dir);
   return files.map((f) => `/gallery/${cat}/${f}`);
 }
 let homeImages = categories.flatMap((c) => readImages(c));

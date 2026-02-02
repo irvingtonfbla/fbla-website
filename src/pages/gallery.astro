@@ -11,14 +11,31 @@ const labels: Record<(typeof categories)[number], { title: string; desc: string 
   slc2025: { title: 'SLC 2025', desc: 'State Leadership Conference 2025' },
 };
 
+function getImagesRecursively(dir: URL, relativePath = ''): string[] {
+  let results: string[] = [];
+  try {
+    const list = fs.readdirSync(dir);
+    list.forEach((file) => {
+      const fullUrl = new URL(file, dir + (dir.href.endsWith('/') ? '' : '/'));
+      const stat = fs.statSync(fullUrl);
+      if (stat && stat.isDirectory()) {
+        results = results.concat(getImagesRecursively(new URL(file + '/', dir), relativePath + file + '/'));
+      } else {
+        if (/\.(jpe?g|png|webp|gif)$/i.test(file)) {
+          results.push(relativePath + file);
+        }
+      }
+    });
+  } catch (e) {
+    console.error(`Error reading directory ${dir}:`, e);
+  }
+  return results;
+}
+
 function readImages(cat: (typeof categories)[number]) {
   const dir = new URL(`./${cat}/`, galleryRoot);
-  let files: string[] = [];
-  try {
-    files = fs.readdirSync(dir).filter((f) => /\.(jpe?g|png|webp|gif)$/i.test(f));
-  } catch {
-    files = [];
-  }
+  const files = getImagesRecursively(dir);
+  
   return files.map((f) => ({
     src: `/gallery/${cat}/${f}`,
     title: labels[cat].title,

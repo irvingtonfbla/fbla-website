@@ -5,12 +5,12 @@
 [build.environment]
   NODE_VERSION = "18"
 
-# Redirect rules for SPA routing
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-  conditions = {Role = ["admin"]}
+# Redirects for SPA routing (not needed for static site, but good for fallbacks if needed)
+# [[redirects]]
+#   from = "/*"
+#   to = "/index.html"
+#   status = 200
+
 
 # Admin panel redirect
 [[redirects]]
