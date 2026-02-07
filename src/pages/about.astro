@@ -1,7 +1,8 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import { Image } from 'astro:assets';
-import chapterGroupImage from '../assets/gallery/gallery1.JPG';
+import heroImage from '../assets/hero.JPG';
+
 ---
 
 <Layout title="About Us - FBLA Chapter" description="Learn about our FBLA chapter's mission, values, and what we stand for in business education and leadership development">
@@ -12,77 +13,22 @@ import chapterGroupImage from '../assets/gallery/gallery1.JPG';
 		</div>
 	</section>
 
-	<section class="mission-vision">
-		<div class="container">
-			<div class="mission-grid">
-				<div class="mission-card">
-					<div class="card-icon">
-						<svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-							<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="#3b82f6"/>
-						</svg>
-					</div>
-					<h2>Our Mission</h2>
-					<p>To inspire and prepare students to become community-minded business leaders in a global society through relevant career preparation and leadership experiences.</p>
-				</div>
-
-				<div class="mission-card">
-					<div class="card-icon">
-						<svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-							<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="#10b981"/>
-						</svg>
-					</div>
-					<h2>Our Vision</h2>
-					<p>To be the premier student business organization that develops competent, aggressive business leaders who are prepared for successful careers in business and entrepreneurship.</p>
-				</div>
-
-				<div class="mission-card">
-					<div class="card-icon">
-						<svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-							<path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z" fill="#f59e0b"/>
-						</svg>
-					</div>
-					<h2>Our Values</h2>
-					<p>Integrity, innovation, excellence, and service guide everything we do. We believe in developing ethical leaders who make a positive impact in their communities.</p>
-				</div>
-			</div>
-		</div>
-	</section>
-
 	<section class="chapter-story">
 		<div class="container">
 			<div class="story-content">
 				<div class="story-text">
 					<h2>Our Chapter Story</h2>
-					<p>Founded in 2010, the Central High School FBLA chapter has grown from a small group of 15 ambitious students to one of the most active and successful chapters in our state, with over 120 members.</p>
+					<p>Founded in 2010, the Irvington High School FBLA chapter has grown from a small group of 15 ambitious students to one of the most active and successful chapters in our state, with over 120 members.</p>
 					
 					<p>Our chapter has consistently demonstrated excellence in competitive events, community service, and leadership development. We've sent delegates to the National Leadership Conference for eight consecutive years and have won numerous state-level awards.</p>
 					
 					<p>What sets our chapter apart is our commitment to real-world application of business principles. Through partnerships with local businesses, internship programs, and entrepreneurship initiatives, our members gain practical experience that prepares them for success in college and their careers.</p>
-					
-					<div class="story-stats">
-						<div class="stat">
-							<div class="stat-number">120+</div>
-							<div class="stat-label">Active Members</div>
-						</div>
-						<div class="stat">
-							<div class="stat-number">8</div>
-							<div class="stat-label">Years at Nationals</div>
-						</div>
-						<div class="stat">
-							<div class="stat-number">25+</div>
-							<div class="stat-label">State Awards</div>
-						</div>
-						<div class="stat">
-							<div class="stat-number">$50K+</div>
-							<div class="stat-label">Scholarships Earned</div>
-						</div>
-					</div>
 				</div>
 				
 				<div class="story-image">
-					<Image src={chapterGroupImage} alt="FBLA Chapter Group Photo" loading="lazy" decoding="async" />
+					<Image src={heroImage} alt="FBLA Chapter Group Photo" loading="lazy" decoding="async" />
 					<div class="image-caption">
-						<p>Our 2024 chapter members at the State Leadership Conference</p>
+						<p>Our 2025 chapter members at the State Leadership Conference</p>
 					</div>
 				</div>
 			</div>
@@ -206,7 +152,8 @@ import chapterGroupImage from '../assets/gallery/gallery1.JPG';
 
 	.page-header p {
 		font-size: 1.25rem;
-		opacity: 0.9;
+		color: white;
+		opacity: 1;
 	}
 
 	.container {

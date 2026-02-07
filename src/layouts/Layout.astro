@@ -25,6 +25,26 @@ import '@fontsource/plus-jakarta-sans/800.css';
 		<meta name="generator" content={Astro.generator} />
 		<meta name="description" content={description} />
 		<title>{title}</title>
+		<script type="application/ld+json">
+			{
+			  "@context": "https://schema.org",
+			  "@type": "Organization",
+			  "name": "Irvington FBLA",
+			  "url": "https://irvingtonfbla.org",
+			  "logo": "https://irvingtonfbla.org/logo.png",
+			  "sameAs": [
+				"https://www.instagram.com/irvingtonfbla"
+			  ],
+			  "address": {
+				"@type": "PostalAddress",
+				"streetAddress": "41800 Blacow Rd",
+				"addressLocality": "Fremont",
+				"addressRegion": "CA",
+				"postalCode": "94538",
+				"addressCountry": "US"
+			  }
+			}
+		</script>
 	</head>
 	<body>
 		<header class="header">
@@ -48,7 +68,18 @@ import '@fontsource/plus-jakarta-sans/800.css';
 					</button>
 					<ul class="nav-menu" id="nav-menu" role="menubar">
 						<li role="none"><a href="/" role="menuitem" tabindex="0">Home</a></li>
-						<li role="none"><a href="/officer-team" role="menuitem" tabindex="0">Team</a></li>
+						<li role="none" class="dropdown">
+							<a href="#" role="menuitem" tabindex="0" class="dropdown-toggle" aria-haspopup="true" aria-expanded="false">
+								About
+								<span class="dropdown-arrow">▼</span>
+							</a>
+							<ul class="dropdown-menu" role="menu">
+								<li role="none"><a href="/about" role="menuitem" tabindex="0">About Us</a></li>
+								<li role="none"><a href="/officer-team" role="menuitem" tabindex="0">Officer Team</a></li>
+								<li role="none"><a href="/what-is-fbla" role="menuitem" tabindex="0">What is FBLA?</a></li>
+								<li role="none"><a href="/fbla-vs-deca" role="menuitem" tabindex="0">FBLA vs DECA</a></li>
+							</ul>
+						</li>
 						<li role="none" class="dropdown">
 							<a href="#" role="menuitem" tabindex="0" class="dropdown-toggle" aria-haspopup="true" aria-expanded="false">
 								Pathways
@@ -59,9 +90,18 @@ import '@fontsource/plus-jakarta-sans/800.css';
 								<li role="none"><a href="/pathways/loop" role="menuitem" tabindex="0">LOOP</a></li>
 							</ul>
 						</li>
+						<li role="none" class="dropdown">
+							<a href="#" role="menuitem" tabindex="0" class="dropdown-toggle" aria-haspopup="true" aria-expanded="false">
+								Competitions
+								<span class="dropdown-arrow">▼</span>
+							</a>
+							<ul class="dropdown-menu" role="menu">
+								<li role="none"><a href="/competitions" role="menuitem" tabindex="0">Overview</a></li>
+								<li role="none"><a href="/competitive-resources" role="menuitem" tabindex="0">Resources</a></li>
+							</ul>
+						</li>
 						<li role="none"><a href="/gallery" role="menuitem" tabindex="0">Gallery</a></li>
-						<li role="none"><a href="/competitive-resources" role="menuitem" tabindex="0">Resources</a></li>
-						<li role="none"><a href="/#faq" role="menuitem" tabindex="0">FAQ</a></li>
+						<li role="none"><a href="/join" role="menuitem" tabindex="0">Join</a></li>
 						<li role="none"><a href="/#contact" role="menuitem" tabindex="0">Contact</a></li>
 					</ul>
 				</div>
@@ -79,6 +119,16 @@ import '@fontsource/plus-jakarta-sans/800.css';
 						<div class="footer-logo">
 							<Image src={logoImage} alt="FBLA Logo" class="footer-logo-img" loading="lazy" decoding="async" />
 						</div>
+					</div>
+					<div class="footer-section links-section">
+						<h3>Quick Links</h3>
+						<ul>
+							<li><a href="/about">About Us</a></li>
+							<li><a href="/officer-team">Officer Team</a></li>
+							<li><a href="/competitions">Competitions</a></li>
+							<li><a href="/join">Join Us</a></li>
+							<li><a href="/#faq">FAQ</a></li>
+						</ul>
 					</div>
 					<div class="footer-section contact-section">
 						<h3>Contact Info</h3>
@@ -449,7 +499,7 @@ import '@fontsource/plus-jakarta-sans/800.css';
 
 	.footer-content {
 		display: grid;
-		grid-template-columns: 1fr 1fr 1fr;
+		grid-template-columns: repeat(4, 1fr);
 		gap: 2rem;
 		margin-bottom: 2rem;
 		align-items: start;
@@ -457,6 +507,26 @@ import '@fontsource/plus-jakarta-sans/800.css';
 
 	.footer-section h3 {
 		margin-bottom: 1rem;
+		color: #60a5fa;
+	}
+
+	.links-section ul {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+	}
+
+	.links-section li {
+		margin-bottom: 0.5rem;
+	}
+
+	.links-section a {
+		color: #9ca3af;
+		text-decoration: none;
+		transition: color 0.3s;
+	}
+
+	.links-section a:hover {
 		color: #60a5fa;
 	}
 
