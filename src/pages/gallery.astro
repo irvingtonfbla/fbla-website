@@ -4,12 +4,45 @@ import { Image } from 'astro:assets';
 import fs from 'node:fs';
 
 const galleryRoot = new URL('../../public/gallery/', import.meta.url);
-const categories = ['nlc2024', 'slc2024', 'slc2025'] as const;
-const labels: Record<(typeof categories)[number], { title: string; desc: string }> = {
+
+function getDirectories(source: URL) {
+  try {
+    return fs.readdirSync(source, { withFileTypes: true })
+      .filter(dirent => dirent.isDirectory())
+      .map(dirent => dirent.name);
+  } catch (e) {
+    console.error(`Error reading gallery directory:`, e);
+    return [];
+  }
+}
+
+const categories = getDirectories(galleryRoot);
+
+function formatTitle(category: string) {
+    // Attempt to make it readable: "nlc2024" -> "NLC 2024"
+    // This is a simple heuristic: split letters and numbers if possible, or just uppercase.
+    // A simple regex to separate text and numbers:
+    return category.replace(/([a-zA-Z]+)(\d+)/, '$1 $2').toUpperCase();
+}
+
+const labels: Record<string, { title: string; desc: string }> = {};
+categories.forEach(cat => {
+    const title = formatTitle(cat);
+    labels[cat] = {
+        title: title,
+        desc: `${title} Event Photos` // Generic description
+    };
+});
+
+// Override with specific known descriptions if needed (optional, keeping previous logic for backward compatibility if I want, but dynamic is better)
+const specificLabels: Record<string, { title: string; desc: string }> = {
   nlc2024: { title: 'NLC 2024', desc: 'National Leadership Conference 2024' },
   slc2024: { title: 'SLC 2024', desc: 'State Leadership Conference 2024' },
   slc2025: { title: 'SLC 2025', desc: 'State Leadership Conference 2025' },
 };
+
+// Merge specific labels
+Object.assign(labels, specificLabels);
 
 function getImagesRecursively(dir: URL, relativePath = ''): string[] {
   let results: string[] = [];
@@ -32,7 +65,7 @@ function getImagesRecursively(dir: URL, relativePath = ''): string[] {
   return results;
 }
 
-function readImages(cat: (typeof categories)[number]) {
+function readImages(cat: string) {
   const dir = new URL(`./${cat}/`, galleryRoot);
   const files = getImagesRecursively(dir);
   
@@ -59,9 +92,9 @@ const images = categories.flatMap((c) => readImages(c));
 		<div class="container">
 			<div class="filter-buttons">
 				<button class="filter-btn active" data-filter="all">All Photos</button>
-				<button class="filter-btn" data-filter="nlc2024">NLC 2024</button>
-				<button class="filter-btn" data-filter="slc2024">SLC 2024</button>
-				<button class="filter-btn" data-filter="slc2025">SLC 2025</button>
+				{categories.map((cat) => (
+					<button class="filter-btn" data-filter={cat}>{labels[cat].title}</button>
+				))}
 			</div>
 		</div>
 	</section>
@@ -98,7 +131,8 @@ const images = categories.flatMap((c) => readImages(c));
 	.page-header {
 		background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
 		color: white;
-		padding: 3rem 0;
+		padding: calc(92px + 3rem) 0 3rem 0;
+		margin-top: 0;
 		text-align: center;
 	}
 
