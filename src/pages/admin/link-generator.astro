@@ -1,0 +1,642 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout title="Link Generator | Irvington FBLA Admin">
+  <section class="admin-hero">
+    <div class="container">
+      <div class="hero-content">
+        <a href="/admin" class="back-link">&larr; Back to Dashboard</a>
+        <h1>Link Generator</h1>
+        <p>Create short redirect links for Irvington FBLA</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="generator-section">
+    <div class="container">
+      <!-- Auth check -->
+      <div id="no-token" class="notice-card" style="display: none;">
+        <p>You need to set up your officer token first.</p>
+        <a href="/admin" class="btn-primary">Go to Admin Dashboard</a>
+      </div>
+
+      <div id="generator" style="display: none;">
+        <!-- Existing Links -->
+        <div class="section-block">
+          <div class="section-header">
+            <h2>Your Links</h2>
+            <button id="refresh-btn" class="btn-icon" title="Refresh links">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <polyline points="1 20 1 14 7 14"></polyline>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+              </svg>
+            </button>
+          </div>
+          <div id="links-list" class="links-list">
+            <div class="loading">Loading links...</div>
+          </div>
+        </div>
+
+        <!-- Create New Link -->
+        <div class="section-block">
+          <h2>Create New Link</h2>
+          <div class="form-group">
+            <label for="dest-url">Destination URL</label>
+            <input type="url" id="dest-url" placeholder="https://docs.google.com/..." />
+          </div>
+          <div class="form-group">
+            <label for="slug-input">Short slug</label>
+            <div class="slug-preview">
+              <span class="slug-prefix">irvingtonfbla.org/r/</span>
+              <input type="text" id="slug-input" placeholder="meeting-notes" />
+            </div>
+            <p class="field-hint">Use lowercase letters, numbers, and hyphens only.</p>
+          </div>
+          <div id="create-error" class="error-msg" style="display: none;"></div>
+          <div id="create-success" class="success-msg" style="display: none;"></div>
+          <button id="create-btn" class="btn-primary">
+            <span id="create-text">Create Link</span>
+            <span id="create-loading" style="display: none;">Creating...</span>
+          </button>
+        </div>
+
+        <!-- Delete Link -->
+        <div class="section-block">
+          <h2>Delete a Link</h2>
+          <div class="form-group">
+            <label for="delete-slug">Slug to delete</label>
+            <div class="slug-preview">
+              <span class="slug-prefix">irvingtonfbla.org/r/</span>
+              <input type="text" id="delete-slug" placeholder="old-link" />
+            </div>
+          </div>
+          <div id="delete-error" class="error-msg" style="display: none;"></div>
+          <div id="delete-success" class="success-msg" style="display: none;"></div>
+          <button id="delete-btn" class="btn-danger">
+            <span id="delete-text">Delete Link</span>
+            <span id="delete-loading" style="display: none;">Deleting...</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<script>
+  const REPO_OWNER = 'irvingtonfbla';
+  const REPO_NAME = 'fbla-website';
+  const FILE_PATH = 'src/data/redirects.json';
+  const BRANCH = 'main';
+
+  const token = localStorage.getItem('fbla_gh_token');
+  const noToken = document.getElementById('no-token')!;
+  const generator = document.getElementById('generator')!;
+
+  if (!token) {
+    noToken.style.display = 'block';
+  } else {
+    generator.style.display = 'block';
+    loadLinks();
+  }
+
+  // --- GitHub API helpers ---
+  async function getFile(): Promise<{ content: Record<string, string>; sha: string }> {
+    const res = await fetch(
+      `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}?ref=${BRANCH}`,
+      { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github.v3+json' } }
+    );
+    if (!res.ok) throw new Error('Failed to fetch redirects file');
+    const data = await res.json();
+    const decoded = atob(data.content.replace(/\n/g, ''));
+    return { content: JSON.parse(decoded), sha: data.sha };
+  }
+
+  async function updateFile(newContent: Record<string, string>, sha: string, message: string) {
+    const encoded = btoa(JSON.stringify(newContent, null, 2) + '\n');
+    const res = await fetch(
+      `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`,
+      {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message,
+          content: encoded,
+          sha,
+          branch: BRANCH,
+        }),
+      }
+    );
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || 'Failed to update file');
+    }
+    return res.json();
+  }
+
+  // --- Load and display links ---
+  async function loadLinks() {
+    const list = document.getElementById('links-list')!;
+    try {
+      const { content } = await getFile();
+      const entries = Object.entries(content);
+      if (entries.length === 0) {
+        list.innerHTML = '<p class="empty-state">No links yet. Create your first one below.</p>';
+        return;
+      }
+      list.innerHTML = entries
+        .map(
+          ([slug, url]) => `
+        <div class="link-row">
+          <div class="link-info">
+            <span class="link-slug">irvingtonfbla.org/r/${slug}</span>
+            <span class="link-dest">&rarr; ${url}</span>
+          </div>
+          <button class="copy-btn" data-url="https://irvingtonfbla.org/r/${slug}" title="Copy link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+          </button>
+        </div>`
+        )
+        .join('');
+
+      // Copy button handlers
+      list.querySelectorAll('.copy-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const url = (btn as HTMLElement).dataset.url!;
+          navigator.clipboard.writeText(url);
+          const original = btn.innerHTML;
+          btn.innerHTML = '<span style="font-size:12px;color:#10b981;">Copied!</span>';
+          setTimeout(() => (btn.innerHTML = original), 1500);
+        });
+      });
+    } catch (e: any) {
+      list.innerHTML = `<p class="error-msg" style="display:block">Error loading links: ${e.message}</p>`;
+    }
+  }
+
+  // --- Create link ---
+  document.getElementById('create-btn')!.addEventListener('click', async () => {
+    const destInput = document.getElementById('dest-url') as HTMLInputElement;
+    const slugInput = document.getElementById('slug-input') as HTMLInputElement;
+    const errorEl = document.getElementById('create-error')!;
+    const successEl = document.getElementById('create-success')!;
+    const createText = document.getElementById('create-text')!;
+    const createLoading = document.getElementById('create-loading')!;
+    const btn = document.getElementById('create-btn') as HTMLButtonElement;
+
+    errorEl.style.display = 'none';
+    successEl.style.display = 'none';
+
+    const dest = destInput.value.trim();
+    const slug = slugInput.value.trim().toLowerCase();
+
+    if (!dest || !slug) {
+      errorEl.textContent = 'Both fields are required.';
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    if (!/^[a-z0-9-]+$/.test(slug)) {
+      errorEl.textContent = 'Slug can only contain lowercase letters, numbers, and hyphens.';
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    try {
+      new URL(dest);
+    } catch {
+      errorEl.textContent = 'Please enter a valid URL (include https://).';
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    btn.disabled = true;
+    createText.style.display = 'none';
+    createLoading.style.display = 'inline';
+
+    try {
+      const { content, sha } = await getFile();
+      if (content[slug]) {
+        errorEl.textContent = `The slug "${slug}" already exists. Choose a different one or delete it first.`;
+        errorEl.style.display = 'block';
+        return;
+      }
+      content[slug] = dest;
+      await updateFile(content, sha, `Add redirect: /r/${slug}`);
+      successEl.innerHTML = `Link created! <strong>irvingtonfbla.org/r/${slug}</strong> will go live after the site rebuilds (~1-2 min).`;
+      successEl.style.display = 'block';
+      destInput.value = '';
+      slugInput.value = '';
+      loadLinks();
+    } catch (e: any) {
+      errorEl.textContent = `Error: ${e.message}`;
+      errorEl.style.display = 'block';
+    } finally {
+      btn.disabled = false;
+      createText.style.display = 'inline';
+      createLoading.style.display = 'none';
+    }
+  });
+
+  // --- Delete link ---
+  document.getElementById('delete-btn')!.addEventListener('click', async () => {
+    const slugInput = document.getElementById('delete-slug') as HTMLInputElement;
+    const errorEl = document.getElementById('delete-error')!;
+    const successEl = document.getElementById('delete-success')!;
+    const deleteText = document.getElementById('delete-text')!;
+    const deleteLoading = document.getElementById('delete-loading')!;
+    const btn = document.getElementById('delete-btn') as HTMLButtonElement;
+
+    errorEl.style.display = 'none';
+    successEl.style.display = 'none';
+
+    const slug = slugInput.value.trim().toLowerCase();
+    if (!slug) {
+      errorEl.textContent = 'Enter a slug to delete.';
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to delete the link "/r/${slug}"?`)) return;
+
+    btn.disabled = true;
+    deleteText.style.display = 'none';
+    deleteLoading.style.display = 'inline';
+
+    try {
+      const { content, sha } = await getFile();
+      if (!content[slug]) {
+        errorEl.textContent = `No link found with slug "${slug}".`;
+        errorEl.style.display = 'block';
+        return;
+      }
+      delete content[slug];
+      await updateFile(content, sha, `Remove redirect: /r/${slug}`);
+      successEl.textContent = `Link "/r/${slug}" deleted. Change will go live after rebuild.`;
+      successEl.style.display = 'block';
+      slugInput.value = '';
+      loadLinks();
+    } catch (e: any) {
+      errorEl.textContent = `Error: ${e.message}`;
+      errorEl.style.display = 'block';
+    } finally {
+      btn.disabled = false;
+      deleteText.style.display = 'inline';
+      deleteLoading.style.display = 'none';
+    }
+  });
+
+  // --- Refresh ---
+  document.getElementById('refresh-btn')!.addEventListener('click', () => loadLinks());
+</script>
+
+<style>
+  .admin-hero {
+    background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #3b82f6 100%);
+    padding: 8rem 2rem 4rem;
+    text-align: center;
+    color: white;
+  }
+
+  .hero-content {
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .back-link {
+    color: rgba(255, 255, 255, 0.7);
+    text-decoration: none;
+    font-size: 0.9rem;
+    display: inline-block;
+    margin-bottom: 1rem;
+    transition: color 0.3s;
+  }
+
+  .back-link:hover {
+    color: white;
+  }
+
+  .admin-hero h1 {
+    font-size: 3rem;
+    font-weight: 800;
+    margin: 0 0 1rem;
+  }
+
+  .admin-hero p {
+    font-size: 1.2rem;
+    opacity: 0.9;
+    margin: 0;
+  }
+
+  .container {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 0 2rem;
+  }
+
+  .generator-section {
+    padding: 3rem 0 5rem;
+  }
+
+  /* Notice card */
+  .notice-card {
+    background: #fef3c7;
+    border: 1px solid #fcd34d;
+    border-radius: 16px;
+    padding: 2rem;
+    text-align: center;
+  }
+
+  .notice-card p {
+    margin: 0 0 1.5rem;
+    color: #92400e;
+    font-weight: 500;
+  }
+
+  /* Section blocks */
+  .section-block {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  }
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .section-block h2 {
+    font-size: 1.4rem;
+    color: #1e3a8a;
+    margin: 0 0 1.5rem;
+  }
+
+  .section-header h2 {
+    margin-bottom: 0;
+  }
+
+  .btn-icon {
+    background: none;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 0.5rem;
+    cursor: pointer;
+    color: #6b7280;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+  }
+
+  .btn-icon:hover {
+    border-color: #3b82f6;
+    color: #3b82f6;
+  }
+
+  /* Links list */
+  .links-list {
+    margin-top: 1.5rem;
+  }
+
+  .link-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border: 1px solid #f3f4f6;
+    border-radius: 12px;
+    margin-bottom: 0.5rem;
+    transition: background 0.2s;
+  }
+
+  .link-row:hover {
+    background: #f9fafb;
+  }
+
+  .link-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+  }
+
+  .link-slug {
+    font-weight: 600;
+    color: #1e3a8a;
+    font-size: 0.95rem;
+  }
+
+  .link-dest {
+    color: #9ca3af;
+    font-size: 0.8rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 400px;
+  }
+
+  .copy-btn {
+    background: none;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 0.4rem 0.6rem;
+    cursor: pointer;
+    color: #6b7280;
+    transition: all 0.3s;
+    flex-shrink: 0;
+  }
+
+  .copy-btn:hover {
+    border-color: #3b82f6;
+    color: #3b82f6;
+  }
+
+  .empty-state {
+    color: #9ca3af;
+    text-align: center;
+    padding: 1rem;
+  }
+
+  .loading {
+    color: #9ca3af;
+    text-align: center;
+    padding: 1rem;
+  }
+
+  /* Form */
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+
+  .form-group label {
+    display: block;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.5rem;
+    font-size: 0.95rem;
+  }
+
+  .form-group input[type="url"],
+  .form-group input[type="text"] {
+    width: 100%;
+    padding: 0.85rem 1rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-family: inherit;
+    transition: border-color 0.3s;
+  }
+
+  .form-group input:focus {
+    outline: none;
+    border-color: #3b82f6;
+  }
+
+  .slug-preview {
+    display: flex;
+    align-items: center;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+    transition: border-color 0.3s;
+  }
+
+  .slug-preview:focus-within {
+    border-color: #3b82f6;
+  }
+
+  .slug-prefix {
+    background: #f3f4f6;
+    padding: 0.85rem 1rem;
+    color: #6b7280;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    border-right: 1px solid #e5e7eb;
+    font-weight: 500;
+  }
+
+  .slug-preview input {
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 0.85rem 1rem !important;
+  }
+
+  .slug-preview input:focus {
+    outline: none;
+    border: none !important;
+  }
+
+  .field-hint {
+    font-size: 0.8rem;
+    color: #9ca3af;
+    margin: 0.5rem 0 0;
+  }
+
+  .btn-primary {
+    background: #1e3a8a;
+    color: white;
+    border: none;
+    padding: 0.85rem 2rem;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-family: inherit;
+    width: 100%;
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background: #1e40af;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(30, 58, 138, 0.3);
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .btn-danger {
+    background: white;
+    color: #ef4444;
+    border: 2px solid #fecaca;
+    padding: 0.85rem 2rem;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-family: inherit;
+    width: 100%;
+  }
+
+  .btn-danger:hover:not(:disabled) {
+    background: #fef2f2;
+    border-color: #ef4444;
+  }
+
+  .btn-danger:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .error-msg {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #dc2626;
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+  }
+
+  .success-msg {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    color: #16a34a;
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+  }
+
+  @media (max-width: 768px) {
+    .admin-hero {
+      padding: 7rem 1.5rem 3rem;
+    }
+
+    .admin-hero h1 {
+      font-size: 2.2rem;
+    }
+
+    .section-block {
+      padding: 1.5rem;
+    }
+
+    .slug-preview {
+      flex-direction: column;
+    }
+
+    .slug-prefix {
+      border-right: none;
+      border-bottom: 1px solid #e5e7eb;
+      text-align: center;
+    }
+
+    .link-dest {
+      max-width: 200px;
+    }
+  }
+</style>

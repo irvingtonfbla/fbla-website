@@ -1,0 +1,28 @@
+---
+import redirects from '../../data/redirects.json';
+
+export function getStaticPaths() {
+  return Object.keys(redirects).map((slug) => ({
+    params: { slug },
+  }));
+}
+
+const { slug } = Astro.params;
+const destination = redirects[slug as keyof typeof redirects];
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="refresh" content={`0; url=${destination}`} />
+    <link rel="canonical" href={destination} />
+    <title>Redirecting...</title>
+    <script define:vars={{ destination }}>
+      window.location.replace(destination);
+    </script>
+  </head>
+  <body>
+    <p>Redirecting to <a href={destination}>{destination}</a>...</p>
+  </body>
+</html>
