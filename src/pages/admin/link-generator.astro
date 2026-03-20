@@ -104,8 +104,8 @@ import Layout from '../../layouts/Layout.astro';
   // --- GitHub API helpers ---
   async function getFile(): Promise<{ content: Record<string, string>; sha: string }> {
     const res = await fetch(
-      `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}?ref=${BRANCH}`,
-      { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github.v3+json' } }
+      `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}?ref=${BRANCH}&t=${Date.now()}`,
+      { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github.v3+json' }, cache: 'no-store' }
     );
     if (!res.ok) throw new Error('Failed to fetch redirects file');
     const data = await res.json();
@@ -231,7 +231,7 @@ import Layout from '../../layouts/Layout.astro';
       }
       content[slug] = dest;
       await updateFile(content, sha, `Add redirect: /r/${slug}`);
-      successEl.innerHTML = `Link created! <strong>irvingtonfbla.org/r/${slug}</strong> will go live after the site rebuilds (~1-2 min).`;
+      successEl.innerHTML = `Link created! <strong>irvingtonfbla.org/r/${slug}</strong> &mdash; wait ~1-2 min for the site to rebuild before the redirect works.`;
       successEl.style.display = 'block';
       destInput.value = '';
       slugInput.value = '';
