@@ -85,66 +85,43 @@ import Layout from '../../layouts/Layout.astro';
 </Layout>
 
 <script>
-  const REPO_OWNER = 'irvingtonfbla';
-  const REPO_NAME = 'fbla-website';
-  const FILE_PATH = 'src/data/redirects.json';
-  const BRANCH = 'main';
-
-  const token = localStorage.getItem('fbla_gh_token');
+  const API_URL = '/.netlify/functions/links';
+  const password = localStorage.getItem('fbla_admin_pw');
   const noToken = document.getElementById('no-token')!;
   const generator = document.getElementById('generator')!;
 
-  if (!token) {
+  if (!password) {
     noToken.style.display = 'block';
   } else {
     generator.style.display = 'block';
     loadLinks();
   }
 
-  // --- GitHub API helpers ---
-  async function getFile(): Promise<{ content: Record<string, string>; sha: string }> {
-    const res = await fetch(
-      `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}?ref=${BRANCH}&t=${Date.now()}`,
-      { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github.v3+json' }, cache: 'no-store' }
-    );
-    if (!res.ok) throw new Error('Failed to fetch redirects file');
-    const data = await res.json();
-    const decoded = atob(data.content.replace(/\n/g, ''));
-    return { content: JSON.parse(decoded), sha: data.sha };
-  }
+  // --- API helper ---
+  async function apiCall(method: string, body?: object) {
+    const options: RequestInit = {
+      method,
+      headers: {
+        Authorization: `Bearer ${password}`,
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store',
+    };
+    if (body) options.body = JSON.stringify(body);
 
-  async function updateFile(newContent: Record<string, string>, sha: string, message: string) {
-    const encoded = btoa(JSON.stringify(newContent, null, 2) + '\n');
-    const res = await fetch(
-      `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`,
-      {
-        method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/vnd.github.v3+json',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message,
-          content: encoded,
-          sha,
-          branch: BRANCH,
-        }),
-      }
-    );
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.message || 'Failed to update file');
-    }
-    return res.json();
+    const res = await fetch(API_URL, options);
+    const data = await res.json();
+
+    if (!res.ok) throw new Error(data.error || 'Something went wrong');
+    return data;
   }
 
   // --- Load and display links ---
   async function loadLinks() {
     const list = document.getElementById('links-list')!;
     try {
-      const { content } = await getFile();
-      const entries = Object.entries(content);
+      const links = await apiCall('GET');
+      const entries = Object.entries(links) as [string, string][];
       if (entries.length === 0) {
         list.innerHTML = '<p class="empty-state">No links yet. Create your first one below.</p>';
         return;
@@ -178,6 +155,11 @@ import Layout from '../../layouts/Layout.astro';
         });
       });
     } catch (e: any) {
+      if (e.message === 'Invalid password') {
+        localStorage.removeItem('fbla_admin_pw');
+        window.location.href = '/admin';
+        return;
+      }
       list.innerHTML = `<p class="error-msg" style="display:block">Error loading links: ${e.message}</p>`;
     }
   }
@@ -195,10 +177,10 @@ import Layout from '../../layouts/Layout.astro';
     errorEl.style.display = 'none';
     successEl.style.display = 'none';
 
-    const dest = destInput.value.trim();
+    const url = destInput.value.trim();
     const slug = slugInput.value.trim().toLowerCase();
 
-    if (!dest || !slug) {
+    if (!url || !slug) {
       errorEl.textContent = 'Both fields are required.';
       errorEl.style.display = 'block';
       return;
@@ -211,7 +193,7 @@ import Layout from '../../layouts/Layout.astro';
     }
 
     try {
-      new URL(dest);
+      new URL(url);
     } catch {
       errorEl.textContent = 'Please enter a valid URL (include https://).';
       errorEl.style.display = 'block';
@@ -223,14 +205,7 @@ import Layout from '../../layouts/Layout.astro';
     createLoading.style.display = 'inline';
 
     try {
-      const { content, sha } = await getFile();
-      if (content[slug]) {
-        errorEl.textContent = `The slug "${slug}" already exists. Choose a different one or delete it first.`;
-        errorEl.style.display = 'block';
-        return;
-      }
-      content[slug] = dest;
-      await updateFile(content, sha, `Add redirect: /r/${slug}`);
+      await apiCall('POST', { slug, url });
       successEl.innerHTML = `Link created! <strong>irvingtonfbla.org/r/${slug}</strong> &mdash; wait ~1-2 min for the site to rebuild before the redirect works.`;
       successEl.style.display = 'block';
       destInput.value = '';
@@ -272,14 +247,7 @@ import Layout from '../../layouts/Layout.astro';
     deleteLoading.style.display = 'inline';
 
     try {
-      const { content, sha } = await getFile();
-      if (!content[slug]) {
-        errorEl.textContent = `No link found with slug "${slug}".`;
-        errorEl.style.display = 'block';
-        return;
-      }
-      delete content[slug];
-      await updateFile(content, sha, `Remove redirect: /r/${slug}`);
+      await apiCall('DELETE', { slug });
       successEl.textContent = `Link "/r/${slug}" deleted. Change will go live after rebuild.`;
       successEl.style.display = 'block';
       slugInput.value = '';

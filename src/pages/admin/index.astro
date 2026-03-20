@@ -23,13 +23,14 @@ import Layout from '../../layouts/Layout.astro';
               <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
             </svg>
           </div>
-          <h2>Enter Officer Token</h2>
-          <p>Paste your GitHub access token to get started. You only need to do this once per device.</p>
+          <h2>Officer Login</h2>
+          <p>Enter the officer password to access admin tools. You only need to do this once per device.</p>
+          <div id="auth-error" style="display:none; background:#fef2f2; border:1px solid #fecaca; color:#dc2626; padding:0.75rem 1rem; border-radius:10px; font-size:0.9rem; margin-bottom:1rem;"></div>
           <div class="token-input-group">
-            <input type="password" id="token-input" placeholder="ghp_xxxxxxxxxxxx..." autocomplete="off" />
+            <input type="password" id="token-input" placeholder="Enter officer password..." autocomplete="off" />
             <button id="save-token-btn" class="btn-primary">Unlock</button>
           </div>
-          <p class="token-hint">Ask your president or webmaster for the token.</p>
+          <p class="token-hint">Ask your president or webmaster for the password.</p>
         </div>
       </div>
 
@@ -68,12 +69,13 @@ import Layout from '../../layouts/Layout.astro';
 </Layout>
 
 <script>
-  const token = localStorage.getItem('fbla_gh_token');
+  const password = localStorage.getItem('fbla_admin_pw');
   const authGate = document.getElementById('auth-gate')!;
   const dashboard = document.getElementById('dashboard')!;
   const tokenInput = document.getElementById('token-input') as HTMLInputElement;
   const saveBtn = document.getElementById('save-token-btn')!;
   const logoutBtn = document.getElementById('logout-btn')!;
+  const authError = document.getElementById('auth-error')!;
 
   function showDashboard() {
     authGate.style.display = 'none';
@@ -85,15 +87,38 @@ import Layout from '../../layouts/Layout.astro';
     dashboard.style.display = 'none';
   }
 
-  if (token) {
+  if (password) {
     showDashboard();
   }
 
-  saveBtn.addEventListener('click', () => {
+  saveBtn.addEventListener('click', async () => {
     const val = tokenInput.value.trim();
     if (!val) return;
-    localStorage.setItem('fbla_gh_token', val);
-    showDashboard();
+
+    // Validate password by making a test request to the function
+    saveBtn.textContent = 'Checking...';
+    (saveBtn as HTMLButtonElement).disabled = true;
+    authError.style.display = 'none';
+
+    try {
+      const res = await fetch('/.netlify/functions/links', {
+        headers: { Authorization: `Bearer ${val}` },
+      });
+
+      if (res.ok) {
+        localStorage.setItem('fbla_admin_pw', val);
+        showDashboard();
+      } else {
+        authError.textContent = 'Wrong password. Ask your president or webmaster for the correct one.';
+        authError.style.display = 'block';
+      }
+    } catch {
+      authError.textContent = 'Could not connect. Try again in a moment.';
+      authError.style.display = 'block';
+    } finally {
+      saveBtn.textContent = 'Unlock';
+      (saveBtn as HTMLButtonElement).disabled = false;
+    }
   });
 
   tokenInput.addEventListener('keydown', (e) => {
@@ -101,7 +126,7 @@ import Layout from '../../layouts/Layout.astro';
   });
 
   logoutBtn.addEventListener('click', () => {
-    localStorage.removeItem('fbla_gh_token');
+    localStorage.removeItem('fbla_admin_pw');
     tokenInput.value = '';
     showAuth();
   });
