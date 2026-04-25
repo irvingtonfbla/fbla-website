@@ -162,53 +162,15 @@ import heroImage from '../assets/hero.JPG';
 		padding: 0 2rem;
 	}
 
-	.mission-vision {
-		padding: 4rem 0;
-		background: #f8fafc;
-	}
-
-	.mission-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-		gap: 2rem;
-	}
-
-	.mission-card {
-		background: white;
-		padding: 2rem;
-		border-radius: 12px;
-		box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-		text-align: center;
-		transition: transform 0.3s;
-	}
-
-	.mission-card:hover {
-		transform: translateY(-5px);
-	}
-
-	.card-icon {
-		margin-bottom: 1.5rem;
-	}
-
-	.mission-card h2 {
-		font-size: 1.5rem;
-		color: #1e3a8a;
-		margin-bottom: 1rem;
-	}
-
-	.mission-card p {
-		color: #4b5563;
-		line-height: 1.6;
-	}
-
 	.chapter-story {
-		padding: 4rem 0;
+		padding: 5rem 0;
+		background: white;
 	}
 
 	.story-content {
 		display: grid;
 		grid-template-columns: 1fr 1fr;
-		gap: 3rem;
+		gap: 4rem;
 		align-items: center;
 	}
 
@@ -219,69 +181,50 @@ import heroImage from '../assets/hero.JPG';
 	}
 
 	.story-text p {
-		color: #4b5563;
-		line-height: 1.7;
-		margin-bottom: 1.5rem;
 		font-size: 1.1rem;
-	}
-
-	.story-stats {
-		display: grid;
-		grid-template-columns: repeat(2, 1fr);
-		gap: 1.5rem;
-		margin-top: 2rem;
-	}
-
-	.stat {
-		text-align: center;
-		padding: 1rem;
-		background: #f8fafc;
-		border-radius: 8px;
-	}
-
-	.stat-number {
-		font-size: 2rem;
-		font-weight: bold;
-		color: #3b82f6;
-	}
-
-	.stat-label {
-		font-size: 0.9rem;
-		color: #6b7280;
-		margin-top: 0.5rem;
+		line-height: 1.8;
+		color: #4b5563;
+		margin-bottom: 1.5rem;
 	}
 
 	.story-image {
-		text-align: center;
+		position: relative;
+		border-radius: 12px;
+		overflow: hidden;
+		box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 	}
 
 	.story-image img {
 		width: 100%;
-		height: 300px;
-		object-fit: cover;
-		border-radius: 12px;
-		box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+		height: auto;
+		display: block;
 	}
 
 	.image-caption {
-		margin-top: 1rem;
+		position: absolute;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		background: rgba(0, 0, 0, 0.7);
+		color: white;
+		padding: 1rem;
+		text-align: center;
 	}
 
 	.image-caption p {
+		margin: 0;
 		font-size: 0.9rem;
-		color: #6b7280;
-		font-style: italic;
 	}
 
 	.what-we-do {
-		padding: 4rem 0;
+		padding: 5rem 0;
 		background: #f8fafc;
 	}
 
 	.what-we-do h2 {
-		text-align: center;
 		font-size: 2.5rem;
 		color: #1e3a8a;
+		text-align: center;
 		margin-bottom: 3rem;
 	}
 
@@ -295,33 +238,53 @@ import heroImage from '../assets/hero.JPG';
 		background: white;
 		padding: 2rem;
 		border-radius: 12px;
-		box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-		transition: transform 0.3s;
-	}
-
-	.activity-card:hover {
-		transform: translateY(-5px);
+		box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+		height: 100%;
 	}
 
 	.activity-icon {
-		margin-bottom: 1rem;
+		width: 64px;
+		height: 64px;
+		background: #eff6ff;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		margin-bottom: 1.5rem;
 	}
 
 	.activity-card h3 {
 		font-size: 1.25rem;
-		color: #1e3a8a;
+		color: #1e293b;
 		margin-bottom: 1rem;
 	}
 
 	.activity-card p {
-		color: #4b5563;
+		color: #64748b;
 		line-height: 1.6;
 	}
 
+	.activity-card-link {
+		text-decoration: none;
+		color: inherit;
+		display: block;
+	}
+
+	.activity-card-link .activity-card {
+		height: 100%;
+		transition: transform 0.3s, box-shadow 0.3s;
+	}
+
+	.activity-card-link:hover .activity-card {
+		transform: translateY(-5px);
+		box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+	}
+
 	.join-us {
-		padding: 4rem 0;
+		padding: 5rem 0;
 		background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
 		color: white;
+		text-align: center;
 	}
 
 	.join-content {
