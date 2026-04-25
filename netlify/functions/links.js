@@ -128,7 +128,7 @@ exports.handler = async (event) => {
       }
 
       content[slug] = url;
-      await updateFile(content, sha, `Add redirect: /r/${slug}`);
+      await updateFile(content, sha, `Add redirect: /${slug}`);
 
       return {
         statusCode: 201,
@@ -160,7 +160,7 @@ exports.handler = async (event) => {
       }
 
       delete content[slug];
-      await updateFile(content, sha, `Remove redirect: /r/${slug}`);
+      await updateFile(content, sha, `Remove redirect: /${slug}`);
 
       return {
         statusCode: 200,
