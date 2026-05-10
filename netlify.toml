@@ -12,6 +12,12 @@
 #   status = 200
 
 
+# Legacy /r/ slug redirect (publicized before slug format change)
+[[redirects]]
+  from = "/r/officerapps2627"
+  to = "/officerapps2627"
+  status = 301
+
 # Admin panel redirect
 [[redirects]]
   from = "/admin/*"
