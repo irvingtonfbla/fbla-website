@@ -244,7 +244,6 @@ function wireInteractions(container: Element) {
   container.querySelectorAll('.status-sel').forEach(sel => {
     sel.addEventListener('change', async e => {
       const el = e.target as HTMLSelectElement;
-      el.className = `status-sel s-${el.value}`; // immediate color update
       const task = allTasks.find(t => t.id === el.dataset.id);
       if (task) await updateStatus(task, el.value);
     });
@@ -313,31 +312,14 @@ function populateOfficerFilter() {
 
 // ── Status update + strikes ──────────────────────────────────────
 async function updateStatus(task: any, newStatus: string) {
-  if (task.source === 'sheets') {
-    // Sheet tasks can't be written back to Sheets — save a local override in Blobs instead
-    if (task._overrideId) {
-      await fetch(`${API}?resource=tasks`, {
-        method: 'PUT', headers: h(),
-        body: JSON.stringify({ id: task._overrideId, status: newStatus }),
-      });
-    } else {
-      await fetch(`${API}?resource=tasks`, {
-        method: 'POST', headers: h(),
-        body: JSON.stringify({
-          overrideFor: task.id,
-          title: task.title,
-          status: newStatus,
-          source: 'override',
-          dateAdded: new Date().toISOString().slice(0, 10),
-        }),
-      });
-    }
-  } else {
-    await fetch(`${API}?resource=tasks`, {
-      method: 'PUT', headers: h(),
-      body: JSON.stringify({ id: task.id, status: newStatus }),
-    });
-  }
+  const oldStatus = task.status;
+
+  // Optimistic update — change in memory and re-render immediately, no network wait
+  const live = allTasks.find(t => t.id === task.id);
+  if (live) live.status = newStatus;
+  render();
+
+  // Strikes prompt (for missed)
   if (newStatus === 'missed') {
     const lead    = task.leadOfficer || task.assignedTo?.[0];
     const others: string[] = task.otherOfficers || task.assignedTo?.slice(1) || [];
@@ -347,8 +329,38 @@ async function updateStatus(task: any, newStatus: string) {
       if (ok) { for (const name of everyone) await recordStrike(name, task); toast('Strikes recorded'); }
     }
   }
-  await loadData();
-  toast('Status updated');
+
+  // Save to backend (no loadData() — keep the in-memory state)
+  try {
+    if (task.source === 'sheets') {
+      if (task._overrideId) {
+        await fetch(`${API}?resource=tasks`, {
+          method: 'PUT', headers: h(),
+          body: JSON.stringify({ id: task._overrideId, status: newStatus }),
+        });
+      } else {
+        const res = await fetch(`${API}?resource=tasks`, {
+          method: 'POST', headers: h(),
+          body: JSON.stringify({ overrideFor: task.id, title: task.title, status: newStatus, source: 'override', dateAdded: new Date().toISOString().slice(0,10) }),
+        });
+        if (res.ok) {
+          const data = await res.json().catch(() => null);
+          if (live && data?.id) live._overrideId = data.id;
+        }
+      }
+    } else {
+      await fetch(`${API}?resource=tasks`, {
+        method: 'PUT', headers: h(),
+        body: JSON.stringify({ id: task.id, status: newStatus }),
+      });
+    }
+    toast('Status updated');
+  } catch {
+    // Revert on save failure
+    if (live) live.status = oldStatus;
+    render();
+    toast('Failed to save', 'error');
+  }
 }
 
 async function recordStrike(name: string, task: any) {
