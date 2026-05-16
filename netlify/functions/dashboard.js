@@ -1,4 +1,44 @@
 const { getStore } = require('@netlify/blobs');
+const fs = require('fs');
+const path = require('path');
+
+// Local file store — used when Netlify Blobs isn't configured (local dev without netlify link)
+function createLocalStore(storeName) {
+  const dir = path.join(process.cwd(), '.netlify', 'blobs-local', storeName);
+  return {
+    get: async (key, opts) => {
+      const file = path.join(dir, `${key}.json`);
+      try {
+        if (!fs.existsSync(file)) return null;
+        const data = JSON.parse(fs.readFileSync(file, 'utf8'));
+        return opts && opts.type === 'json' ? data : JSON.stringify(data);
+      } catch { return null; }
+    },
+    setJSON: async (key, value) => {
+      fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(path.join(dir, `${key}.json`), JSON.stringify(value, null, 2));
+    },
+    delete: async (key) => {
+      const file = path.join(dir, `${key}.json`);
+      if (fs.existsSync(file)) fs.unlinkSync(file);
+    },
+  };
+}
+
+function getStoreForEnv(name) {
+  try {
+    const s = getStore(name);
+    // probe that it's actually configured (throws if not)
+    if (!process.env.NETLIFY_BLOBS_CONTEXT && !process.env.NETLIFY_LOCAL_BLOBS_PATH) {
+      // check env vars Blobs needs
+      if (!process.env.SITE_ID && !process.env.NETLIFY_SITE_ID) throw new Error('no siteID');
+    }
+    return s;
+  } catch {
+    if (process.env.NETLIFY_DEV) console.log('[blobs] using local file store (run `netlify link` for real Blobs)');
+    return createLocalStore(name);
+  }
+}
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -51,7 +91,7 @@ exports.handler = async (event) => {
     return { statusCode: 401, headers: CORS, body: JSON.stringify({ error: 'Unauthorized' }) };
   }
 
-  const store = getStore('fbla-dashboard');
+  const store = getStoreForEnv('fbla-dashboard');
 
   try {
     // GET — list all items
