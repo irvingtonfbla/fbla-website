@@ -244,6 +244,7 @@ function wireInteractions(container: Element) {
   container.querySelectorAll('.status-sel').forEach(sel => {
     sel.addEventListener('change', async e => {
       const el = e.target as HTMLSelectElement;
+      el.className = `status-sel s-${el.value}`; // immediate color update
       const task = allTasks.find(t => t.id === el.dataset.id);
       if (task) await updateStatus(task, el.value);
     });

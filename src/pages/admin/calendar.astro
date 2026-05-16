@@ -156,10 +156,18 @@ function updateNotesVisibility() {
 document.getElementById('event-type')?.addEventListener('change', updateNotesVisibility);
 
 let allEvents: any[] = [];
+let allDeadlines: any[] = []; // tasks with deadlines
 let currentYear = new Date().getFullYear();
 let currentMonth = new Date().getMonth();
 let selectedDay: string | null = null;
 let editingId: string | null = null;
+
+const STATUS_COLORS: Record<string,string> = {
+  'not-started': '#94a3b8', 'in-progress': '#f59e0b', done: '#22c55e', missed: '#ef4444',
+};
+const STATUS_LABELS: Record<string,string> = {
+  'not-started': 'Not Started', 'in-progress': 'In Progress', done: 'Done', missed: 'Missed',
+};
 
 function fmtDate(d: string) {
   return new Date(d + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
@@ -174,9 +182,30 @@ function localDateStr(date: Date) {
 }
 
 async function loadEvents() {
-  const r = await fetch(`${API}?resource=events`, { headers: h() });
-  const data = await r.json();
-  allEvents = data.items || [];
+  const [evRes, taskRes, sheetRes] = await Promise.all([
+    fetch(`${API}?resource=events`, { headers: h() }),
+    fetch(`${API}?resource=tasks`, { headers: h() }),
+    fetch('/.netlify/functions/sheets-tasks', { headers: h() }).catch(() => null),
+  ]);
+  allEvents = ((await evRes.json()).items || []);
+
+  const blobTasks = (await taskRes.json()).items || [];
+  let sheetTasks: any[] = [];
+  try { if (sheetRes?.ok) { const sd = await sheetRes.json(); sheetTasks = sd.tasks || []; } } catch {}
+
+  // Merge overrides onto sheet tasks (same logic as task board)
+  const overrides = blobTasks.filter((t: any) => t.overrideFor);
+  const overrideMap: Record<string,any> = {};
+  overrides.forEach((t: any) => { overrideMap[t.overrideFor] = t; });
+  const regularBlob = blobTasks.filter((t: any) => !t.overrideFor);
+  const sheetWithOverrides = sheetTasks.map((t: any) => {
+    const ov = overrideMap[t.id];
+    return ov ? { ...t, status: ov.status } : t;
+  });
+
+  // Only keep tasks that have a deadline date
+  allDeadlines = [...sheetWithOverrides, ...regularBlob].filter(t => t.deadline);
+
   renderCalendar();
   renderEventList();
 }
@@ -202,14 +231,24 @@ function renderCalendar() {
       const end = e.endDate?.slice(0,10) || start;
       return dateStr >= start && dateStr <= end;
     });
+    const dayDeadlines = allDeadlines.filter(t => {
+      const dl = typeof t.deadline === 'string' && t.deadline.includes('/')
+        ? (() => { const [m,dy,y] = t.deadline.split('/'); return `${y||new Date().getFullYear()}-${String(m).padStart(2,'0')}-${String(dy).padStart(2,'0')}`; })()
+        : t.deadline?.slice(0,10);
+      return dl === dateStr;
+    });
     const isToday = dateStr === today;
     const isSelected = dateStr === selectedDay;
-    const dots = dayEvents.slice(0, 3).map(e =>
+    const eventDots = dayEvents.slice(0, 3).map(e =>
       `<span class="cal-dot" style="background:${TYPE_COLORS[e.type]||'#94a3b8'}"></span>`
     ).join('');
+    const deadlineBadge = dayDeadlines.length
+      ? `<span class="cal-due">${dayDeadlines.length} due</span>`
+      : '';
     html += `<div class="cal-cell${isToday?' today':''}${isSelected?' selected':''}" data-date="${dateStr}">
       <span class="cal-day-num">${d}</span>
-      <div class="cal-dots">${dots}</div>
+      <div class="cal-dots">${eventDots}</div>
+      ${deadlineBadge}
     </div>`;
   }
   cells.innerHTML = html;
@@ -247,12 +286,29 @@ function renderEventList(day?: string | null) {
       .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
   }
 
-  if (events.length === 0) {
-    el.innerHTML = '<div class="empty-state"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg><p>No events here</p></div>';
-    return;
+  // Task deadlines for this view
+  let deadlines: any[] = [];
+  if (day) {
+    deadlines = allDeadlines.filter(t => {
+      const dl = typeof t.deadline === 'string' && t.deadline.includes('/')
+        ? (() => { const [m,dy,y] = t.deadline.split('/'); return `${y||new Date().getFullYear()}-${String(m).padStart(2,'0')}-${String(dy).padStart(2,'0')}`; })()
+        : t.deadline?.slice(0,10);
+      return dl === day;
+    });
+  } else {
+    // Upcoming view: show deadlines in the next 14 days
+    const soon = new Date(); soon.setDate(soon.getDate() + 14);
+    deadlines = allDeadlines
+      .filter(t => t.status !== 'done')
+      .filter(t => {
+        const dl = t.deadline?.includes('/')
+          ? new Date(t.deadline) : new Date(t.deadline + 'T12:00:00');
+        return dl >= now && dl <= soon;
+      })
+      .sort((a, b) => String(a.deadline).localeCompare(String(b.deadline)));
   }
 
-  el.innerHTML = events.map(e => `
+  const eventHtml = events.length ? events.map(e => `
     <div class="event-row" data-id="${e.id}">
       <div class="event-color-bar" style="background:${TYPE_COLORS[e.type]||'#94a3b8'}"></div>
       <div class="event-row-body">
@@ -271,7 +327,36 @@ function renderEventList(day?: string | null) {
         </button>
       </div>
     </div>
-  `).join('');
+  `).join('') : '';
+
+  const deadlineHtml = deadlines.length ? `
+    <div class="deadline-section">
+      <div class="deadline-section-label">Task Deadlines</div>
+      ${deadlines.map(t => {
+        const lead = t.leadOfficer || t.assignedTo?.[0] || '';
+        const fmtDl = (d: string) => {
+          if (!d) return '';
+          const dt = d.includes('/') ? new Date(d) : new Date(d + 'T12:00:00');
+          return isNaN(dt.getTime()) ? d : dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        };
+        return `<div class="deadline-row">
+          <span class="deadline-dot" style="background:${STATUS_COLORS[t.status]||'#94a3b8'}"></span>
+          <div class="deadline-body">
+            <div class="deadline-title${t.status==='done'?' done':''}">${t.title}</div>
+            ${lead ? `<div class="deadline-meta">${lead}${t.tab ? ' · ' + t.tab : ''}</div>` : ''}
+          </div>
+          <span class="deadline-status" style="color:${STATUS_COLORS[t.status]||'#94a3b8'}">${STATUS_LABELS[t.status]||''}</span>
+        </div>`;
+      }).join('')}
+    </div>
+  ` : '';
+
+  if (!eventHtml && !deadlineHtml) {
+    el.innerHTML = '<div class="empty-state"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg><p>Nothing here</p></div>';
+    return;
+  }
+
+  el.innerHTML = eventHtml + deadlineHtml;
 
   el.querySelectorAll('.edit-event-btn').forEach(btn => {
     btn.addEventListener('click', () => openEditModal((btn as HTMLElement).dataset.id!));
@@ -491,4 +576,31 @@ loadEvents();
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
 .event-notes-preview { font-size: 0.75rem; color: #64748b; margin-top: 0.25rem; background: #f8fafc; border-radius: 6px; padding: 0.4rem 0.6rem; border-left: 3px solid #3b82f6; }
+
+/* Calendar deadline badge */
+.cal-due {
+  display: inline-block; font-size: 0.6rem; font-weight: 700;
+  background: #fef9c3; color: #854d0e; border: 1px solid #fde68a;
+  border-radius: 4px; padding: 0.05rem 0.3rem; margin-top: 1px;
+  line-height: 1.4; white-space: nowrap;
+}
+
+/* Deadline section in sidebar */
+.deadline-section { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #f1f5f9; }
+.deadline-section-label {
+  font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.07em; color: #94a3b8; margin-bottom: 0.5rem;
+  padding: 0 0.25rem;
+}
+.deadline-row {
+  display: flex; align-items: flex-start; gap: 0.6rem;
+  padding: 0.5rem 0.25rem; border-bottom: 1px solid #f8fafc;
+}
+.deadline-row:last-child { border-bottom: none; }
+.deadline-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+.deadline-body { flex: 1; min-width: 0; }
+.deadline-title { font-size: 0.82rem; font-weight: 500; color: #1e293b; line-height: 1.3; }
+.deadline-title.done { text-decoration: line-through; color: #94a3b8; }
+.deadline-meta { font-size: 0.72rem; color: #94a3b8; margin-top: 0.1rem; }
+.deadline-status { font-size: 0.7rem; font-weight: 600; white-space: nowrap; flex-shrink: 0; }
 </style>
