@@ -6,7 +6,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   <div class="page-header">
     <div>
       <h1>Task Board</h1>
-      <p>Assign tasks, track deadlines, manage officer accountability</p>
+      <p>All tasks across departments — update status and assignments inline</p>
     </div>
     <div style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap">
       <select id="filter-officer" class="filter-select">
@@ -27,19 +27,24 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   </div>
 
   <div class="page-body">
+
+    <!-- Dept tabs -->
     <div class="dept-tab-bar" id="dept-tab-bar">
       <button class="dept-tab active" data-dept="">All</button>
     </div>
 
+    <!-- Loading -->
     <div id="task-loading" class="empty-state" style="padding:4rem">
       <div class="loading-spinner" style="margin:0 auto 1rem"></div>
       <p>Loading tasks…</p>
     </div>
 
+    <!-- Main content -->
     <div id="task-content" style="display:none"></div>
+
   </div>
 
-  <!-- Add/Edit Modal -->
+  <!-- Add / Edit Modal -->
   <div class="modal-overlay" id="task-modal">
     <div class="modal" style="max-width:580px">
       <div class="modal-header">
@@ -55,7 +60,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
           <input type="text" id="f-title" class="form-control" placeholder="e.g. Design Minicon flyer" />
         </div>
         <div class="form-group">
-          <label class="form-label">Description <span style="color:#94a3b8;font-weight:400">(include times if relevant)</span></label>
+          <label class="form-label">Description</label>
           <textarea id="f-desc" class="form-control" rows="2" placeholder="What needs to be done? Add specific times, context, links..."></textarea>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
@@ -115,15 +120,13 @@ let editingId: string | null = null;
 let sheetTabs: string[] = [];
 let activeDept = '';
 
-const STATUS_LABEL: Record<string,string> = { 'not-started': 'Not Started', 'in-progress': 'In Progress', done: 'Done', missed: 'Missed' };
+const STATUS_LABEL: Record<string,string> = {
+  'not-started': 'Not Started',
+  'in-progress': 'In Progress',
+  done: 'Done',
+  missed: 'Missed',
+};
 
-function fmt(d: string) {
-  if (!d) return '—';
-  if (/^\d{1,2}\/\d{1,2}(\/\d{2,4})?$/.test(d)) return d.split('/').slice(0,2).join('/');
-  const dt = new Date(d + 'T12:00:00');
-  if (isNaN(dt.getTime())) return d;
-  return `${dt.getMonth()+1}/${dt.getDate()}`;
-}
 function fmtLong(d: string) {
   if (!d) return '';
   if (/^\d{1,2}\/\d{1,2}(\/\d{2,4})?$/.test(d)) {
@@ -144,40 +147,42 @@ function toast(msg: string, type = 'success') {
   setTimeout(() => el.classList.remove('show'), 3000);
 }
 
-// ── Status icon ──────────────────────────────────────────────────
-function statusIcon(status: string): string {
-  if (status === 'done')
-    return `<svg width="20" height="20" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#22c55e"/><polyline points="8 12 11 15 16 9" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-  if (status === 'missed')
-    return `<svg width="20" height="20" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#ef4444"/><line x1="9" y1="9" x2="15" y2="15" stroke="white" stroke-width="2.5" stroke-linecap="round"/><line x1="15" y1="9" x2="9" y2="15" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>`;
-  if (status === 'in-progress')
-    return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#f59e0b" stroke-width="2"/><path d="M12 7v5l3 3" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-  return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#cbd5e1" stroke-width="2"/></svg>`;
-}
-
-// ── Task row ─────────────────────────────────────────────────────
+// ── Build a single table row ─────────────────────────────────────
 function buildRow(t: any): string {
+  const fromSheets = t.source === 'sheets';
   const lead   = t.leadOfficer || t.assignedTo?.[0] || '';
   const others: string[] = t.otherOfficers?.length ? t.otherOfficers : (t.assignedTo?.slice(1) || []);
-  const all    = [lead, ...others].filter(Boolean);
-  const sheet  = t.source === 'sheets';
   const dl     = t.deadline ? fmtLong(t.deadline) : '';
   const od     = isOverdue(t.deadline, t.status);
 
+  // Status cell: inline select for blob tasks, static badge for sheet tasks
+  const statusCell = fromSheets
+    ? `<span class="status-badge s-${t.status}">${STATUS_LABEL[t.status]}</span>`
+    : `<select class="status-sel s-${t.status}" data-id="${t.id}">
+        <option value="not-started"${t.status==='not-started'?' selected':''}>Not Started</option>
+        <option value="in-progress"${t.status==='in-progress'?' selected':''}>In Progress</option>
+        <option value="done"${t.status==='done'?' selected':''}>Done</option>
+        <option value="missed"${t.status==='missed'?' selected':''}>Missed</option>
+       </select>`;
+
+  const officers = [lead, ...others].filter(Boolean);
+
   return `<div class="trow s-${t.status}" data-id="${t.id}">
-    <button class="trow-status${sheet ? ' ro' : ''}" data-id="${t.id}" data-status="${t.status}" title="${sheet ? STATUS_LABEL[t.status] : 'Toggle done'}">
-      ${statusIcon(t.status)}
-    </button>
-    <div class="trow-body">
-      <span class="trow-title">${t.title}</span>
-      ${t.description ? `<span class="trow-desc">${t.description}</span>` : ''}
+    <div class="tcell tc-status">${statusCell}</div>
+    <div class="tcell tc-task">
+      <span class="task-name">${t.title}</span>
+      ${t.description ? `<span class="task-desc">${t.description}</span>` : ''}
     </div>
-    <div class="trow-meta">
-      ${all.length ? `<span class="trow-officers">${all.slice(0,2).join(', ')}${all.length > 2 ? ` +${all.length-2}` : ''}</span>` : ''}
-      ${dl ? `<span class="trow-dl${od ? ' od' : ''}">${dl}</span>` : ''}
-      ${sheet
-        ? `<span class="src-badge">Sheets</span>`
-        : `<button class="trow-edit" data-id="${t.id}" title="Edit">
+    <div class="tcell tc-officers">
+      ${officers.length ? officers.slice(0,3).map((o,i) => `<span class="o-pill${i>0?' sec':''}">${o}</span>`).join('') : '<span class="dim">—</span>'}
+    </div>
+    <div class="tcell tc-deadline${od ? ' overdue' : ''}">
+      ${dl || '<span class="dim">—</span>'}
+    </div>
+    <div class="tcell tc-actions">
+      ${fromSheets
+        ? `<span class="sheets-badge">Sheets</span>`
+        : `<button class="edit-btn" data-id="${t.id}" title="Edit task">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
            </button>`
       }
@@ -195,18 +200,28 @@ function sortTasks(tasks: any[]): any[] {
   });
 }
 
-function buildDeptBlock(dept: string, tasks: any[]): string {
+function buildSection(dept: string, tasks: any[]): string {
   const done   = tasks.filter(t => t.status === 'done').length;
   const missed = tasks.filter(t => t.status === 'missed').length;
   const pct    = tasks.length ? Math.round(done / tasks.length * 100) : 0;
-  return `<div class="dept-block">
-    <div class="dept-hdr2">
-      <span class="dept-hdr2-name">${dept}</span>
-      <div class="dept-hdr2-bar"><div class="dept-hdr2-fill" style="width:${pct}%"></div></div>
-      <span class="dept-hdr2-count">${done}/${tasks.length}</span>
-      ${missed ? `<span class="dept-hdr2-missed">${missed} missed</span>` : ''}
+
+  return `<div class="dept-section">
+    <div class="dept-hdr">
+      <span class="dept-name">${dept}</span>
+      <div class="dept-bar"><div class="dept-fill" style="width:${pct}%"></div></div>
+      <span class="dept-count">${done}/${tasks.length} done</span>
+      ${missed ? `<span class="missed-pill">${missed} missed</span>` : ''}
     </div>
-    <div class="task-list">${sortTasks(tasks).map(buildRow).join('')}</div>
+    <div class="task-table">
+      <div class="table-head">
+        <div class="tcell tc-status">Status</div>
+        <div class="tcell tc-task">Task</div>
+        <div class="tcell tc-officers">Officers</div>
+        <div class="tcell tc-deadline">Deadline</div>
+        <div class="tcell tc-actions"></div>
+      </div>
+      <div class="table-body">${sortTasks(tasks).map(buildRow).join('')}</div>
+    </div>
   </div>`;
 }
 
@@ -226,16 +241,17 @@ function getFiltered() {
   });
 }
 
-function wireRows(container: Element) {
-  container.querySelectorAll('.trow-status:not(.ro)').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const el = btn as HTMLElement;
+function wireInteractions(container: Element) {
+  // Inline status dropdowns
+  container.querySelectorAll('.status-sel').forEach(sel => {
+    sel.addEventListener('change', async e => {
+      const el = e.target as HTMLSelectElement;
       const task = allTasks.find(t => t.id === el.dataset.id);
-      if (!task) return;
-      await updateStatus(task, task.status === 'done' ? 'not-started' : 'done');
+      if (task) await updateStatus(task, el.value);
     });
   });
-  container.querySelectorAll('.trow-edit').forEach(btn => {
+  // Edit buttons
+  container.querySelectorAll('.edit-btn').forEach(btn => {
     btn.addEventListener('click', () => openEdit((btn as HTMLElement).dataset.id!));
   });
 }
@@ -253,7 +269,7 @@ function render() {
   }
 
   if (activeDept) {
-    content.innerHTML = `<div class="task-list">${sortTasks(tasks).map(buildRow).join('')}</div>`;
+    content.innerHTML = buildSection(activeDept, tasks);
   } else {
     const groups: Record<string, any[]> = {};
     tasks.forEach(t => { const k = t.tab || 'General'; (groups[k] = groups[k] || []).push(t); });
@@ -261,10 +277,10 @@ function render() {
       ...sheetTabs.filter(k => groups[k]),
       ...Object.keys(groups).filter(k => !sheetTabs.includes(k)),
     ];
-    content.innerHTML = keys.map(d => buildDeptBlock(d, groups[d])).join('');
+    content.innerHTML = keys.map(d => buildSection(d, groups[d])).join('');
   }
 
-  wireRows(content);
+  wireInteractions(content);
 }
 
 // ── Dept tabs ────────────────────────────────────────────────────
@@ -282,7 +298,6 @@ function buildDeptTabs() {
   });
 }
 
-// ── Officer filter ───────────────────────────────────────────────
 function populateOfficerFilter() {
   const sel = document.getElementById('filter-officer') as HTMLSelectElement;
   const names = new Set<string>();
@@ -359,7 +374,6 @@ async function loadData() {
   render();
 }
 
-// ── Roster autocomplete ──────────────────────────────────────────
 async function loadRosterAutocomplete() {
   try {
     const res  = await fetch(`${API}?resource=roster`, { headers: h() });
@@ -478,108 +492,134 @@ loadRosterAutocomplete();
 .dept-tab:hover:not(.active) { border-color: #94a3b8; color: #374151; }
 .dept-tab.active { background: #0f172a; color: white; border-color: #0f172a; }
 
-/* ── Dept section header ────────────────────────────────── */
-.dept-block { margin-bottom: 1.75rem; }
-.dept-hdr2 {
+/* ── Dept section ───────────────────────────────────────── */
+.dept-section { margin-bottom: 2rem; }
+.dept-hdr {
   display: flex; align-items: center; gap: 0.6rem;
-  padding: 0 0.25rem 0.5rem; margin-bottom: 0;
+  padding: 0 0.25rem; margin-bottom: 0.5rem;
 }
-.dept-hdr2-name {
-  font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 0.07em; color: #94a3b8; white-space: nowrap;
-}
-.dept-hdr2-bar {
-  flex: 1; max-width: 72px; height: 3px;
-  background: #e2e8f0; border-radius: 2px; overflow: hidden;
-}
-.dept-hdr2-fill { height: 100%; background: #22c55e; border-radius: 2px; }
-.dept-hdr2-count { font-size: 0.72rem; font-weight: 600; color: #94a3b8; white-space: nowrap; }
-.dept-hdr2-missed {
-  font-size: 0.68rem; font-weight: 700; color: #ef4444;
-  background: #fef2f2; padding: 0.1rem 0.45rem;
-  border-radius: 10px; border: 1px solid #fecaca;
-  white-space: nowrap;
-}
+.dept-name { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #64748b; white-space: nowrap; }
+.dept-bar { flex: 1; max-width: 80px; height: 3px; background: #e2e8f0; border-radius: 2px; overflow: hidden; }
+.dept-fill { height: 100%; background: #22c55e; border-radius: 2px; }
+.dept-count { font-size: 0.72rem; color: #94a3b8; white-space: nowrap; }
+.missed-pill { font-size: 0.68rem; font-weight: 700; color: #dc2626; background: #fef2f2; border: 1px solid #fecaca; padding: 0.1rem 0.45rem; border-radius: 10px; }
 
-/* ── Task list container ────────────────────────────────── */
-.task-list {
+/* ── Table ──────────────────────────────────────────────── */
+.task-table {
   background: white; border: 1px solid #e2e8f0;
   border-radius: 10px; overflow: hidden;
 }
 
-/* ── Task row ───────────────────────────────────────────── */
+.table-head, .trow {
+  display: grid;
+  grid-template-columns: 130px 1fr 180px 90px 60px;
+  align-items: center;
+}
+
+.table-head {
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+.table-head .tcell {
+  font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.06em; color: #94a3b8;
+  padding: 0.6rem 0.75rem;
+}
+
 .trow {
-  display: flex; align-items: center; gap: 0.75rem;
-  padding: 0.55rem 0.875rem;
   border-bottom: 1px solid #f1f5f9;
   transition: background 0.1s;
+  min-height: 44px;
 }
 .trow:last-child { border-bottom: none; }
 .trow:hover { background: #fafafa; }
 
-/* Status icon button */
-.trow-status {
-  background: none; border: none; cursor: pointer; padding: 0;
-  display: flex; align-items: center; flex-shrink: 0;
-  transition: transform 0.1s, opacity 0.1s;
-  opacity: 0.9;
-}
-.trow-status:hover:not(.ro) { opacity: 1; transform: scale(1.15); }
-.trow-status.ro { cursor: default; }
+/* Strike through done tasks */
+.trow.s-done .task-name { text-decoration: line-through; color: #94a3b8; }
+.trow.s-missed .task-name { color: #ef4444; }
 
-/* Task body */
-.trow-body { flex: 1; min-width: 0; }
-.trow-title {
-  display: block; font-size: 0.875rem; font-weight: 500; color: #1e293b;
-  line-height: 1.35;
-}
-.trow-desc {
-  display: block; font-size: 0.775rem; color: #94a3b8; margin-top: 0.1rem;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 480px;
+.tcell { padding: 0.55rem 0.75rem; }
+.tc-status { display: flex; align-items: center; }
+.tc-task { min-width: 0; }
+.tc-officers { display: flex; flex-wrap: wrap; gap: 0.3rem; align-items: center; }
+.tc-deadline { font-size: 0.82rem; color: #64748b; white-space: nowrap; }
+.tc-deadline.overdue { color: #ef4444; font-weight: 600; }
+.tc-actions { display: flex; align-items: center; justify-content: flex-end; gap: 0.4rem; }
+
+/* ── Task cell content ──────────────────────────────────── */
+.task-name { display: block; font-size: 0.875rem; font-weight: 500; color: #1e293b; line-height: 1.3; }
+.task-desc {
+  display: block; font-size: 0.775rem; color: #94a3b8; margin-top: 0.15rem;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
-/* Status-based title styles */
-.trow.s-done .trow-title { text-decoration: line-through; color: #94a3b8; }
-.trow.s-missed .trow-title { color: #ef4444; }
+/* ── Status dropdown (inline, blob tasks) ───────────────── */
+.status-sel {
+  appearance: none; -webkit-appearance: none;
+  border: 1.5px solid transparent; border-radius: 20px;
+  font-size: 0.75rem; font-weight: 600; padding: 0.25rem 0.65rem;
+  cursor: pointer; font-family: inherit; transition: all 0.12s;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2364748b' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.4rem center;
+  padding-right: 1.5rem;
+}
+.status-sel:focus { outline: none; box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
 
-/* Right side meta */
-.trow-meta {
-  display: flex; align-items: center; gap: 0.6rem;
-  flex-shrink: 0;
+.status-sel.s-not-started { background-color: #f8fafc; color: #475569; border-color: #e2e8f0; }
+.status-sel.s-in-progress { background-color: #fffbeb; color: #b45309; border-color: #fde68a; }
+.status-sel.s-done        { background-color: #f0fdf4; color: #15803d; border-color: #bbf7d0; }
+.status-sel.s-missed      { background-color: #fef2f2; color: #dc2626; border-color: #fecaca; }
+
+/* ── Status badge (read-only, sheet tasks) ──────────────── */
+.status-badge {
+  display: inline-block; font-size: 0.75rem; font-weight: 600;
+  padding: 0.25rem 0.65rem; border-radius: 20px;
+  border: 1.5px solid transparent;
 }
-.trow-officers {
-  font-size: 0.775rem; color: #64748b; white-space: nowrap;
+.status-badge.s-not-started { background: #f8fafc; color: #475569; border-color: #e2e8f0; }
+.status-badge.s-in-progress { background: #fffbeb; color: #b45309; border-color: #fde68a; }
+.status-badge.s-done        { background: #f0fdf4; color: #15803d; border-color: #bbf7d0; }
+.status-badge.s-missed      { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
+
+/* ── Officer pills ──────────────────────────────────────── */
+.o-pill {
+  display: inline-block; font-size: 0.72rem; font-weight: 500;
+  padding: 0.1rem 0.45rem; border-radius: 50px;
+  background: #eff6ff; color: #1d4ed8; white-space: nowrap;
 }
-.trow-dl {
-  font-size: 0.75rem; color: #94a3b8; white-space: nowrap;
-}
-.trow-dl.od { color: #ef4444; font-weight: 600; }
-.src-badge {
-  font-size: 0.67rem; font-weight: 700; padding: 0.1rem 0.45rem;
+.o-pill.sec { background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; }
+
+/* ── Sheets badge ───────────────────────────────────────── */
+.sheets-badge {
+  font-size: 0.67rem; font-weight: 700; padding: 0.15rem 0.5rem;
   border-radius: 50px; background: #f0fdf4; color: #15803d;
   border: 1px solid #bbf7d0; white-space: nowrap;
 }
 
-/* Edit button — appears on row hover */
-.trow-edit {
-  background: none; border: 1px solid transparent; border-radius: 6px;
-  padding: 0.25rem; cursor: pointer; color: #94a3b8;
+/* ── Edit button ────────────────────────────────────────── */
+.edit-btn {
+  background: none; border: 1px solid #e2e8f0; border-radius: 6px;
+  padding: 0.3rem; cursor: pointer; color: #94a3b8;
   display: inline-flex; align-items: center; transition: all 0.12s;
   opacity: 0;
 }
-.trow:hover .trow-edit { opacity: 1; border-color: #e2e8f0; }
-.trow-edit:hover { background: #f1f5f9; color: #374151; border-color: #94a3b8; }
+.trow:hover .edit-btn { opacity: 1; }
+.edit-btn:hover { background: #f1f5f9; color: #374151; border-color: #94a3b8; }
 
-/* ── Empty state ────────────────────────────────────────── */
+.dim { color: #cbd5e1; }
+
+/* ── Empty ──────────────────────────────────────────────── */
 .task-empty {
   text-align: center; padding: 3rem 2rem;
   color: #94a3b8; font-size: 0.875rem;
   background: white; border: 1px solid #e2e8f0; border-radius: 10px;
 }
 
-@media (max-width: 700px) {
-  .trow-officers { display: none; }
-  .trow-desc { display: none; }
-  .page-header { flex-direction: column; align-items: flex-start; gap: 1rem; }
+@media (max-width: 800px) {
+  .table-head, .trow { grid-template-columns: 120px 1fr 80px 36px; }
+  .tc-officers { display: none; }
+  .table-head .tcell:nth-child(3) { display: none; }
+  .task-desc { display: none; }
 }
 </style>
