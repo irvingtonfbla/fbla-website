@@ -1,0 +1,280 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+---
+
+<AdminLayout title="Dashboard" active="dashboard">
+  <div class="page-header">
+    <div>
+      <h1>Officer Dashboard</h1>
+      <p id="greeting">Good to see you. Here's what's happening with Irvington FBLA.</p>
+    </div>
+    <a href="/admin/calendar" class="btn btn-primary">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      View Calendar
+    </a>
+  </div>
+
+  <div class="page-body">
+    <!-- Stats -->
+    <div class="stats-grid" id="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Upcoming Events</div>
+        <div class="stat-value" id="stat-events">—</div>
+        <div class="stat-sub">next 30 days</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Open Tasks</div>
+        <div class="stat-value" id="stat-open-tasks">—</div>
+        <div class="stat-sub">not started / in progress</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Overdue Tasks</div>
+        <div class="stat-value overdue" id="stat-overdue">—</div>
+        <div class="stat-sub">past deadline</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Meeting Minutes</div>
+        <div class="stat-value" id="stat-minutes">—</div>
+        <div class="stat-sub">on record</div>
+      </div>
+    </div>
+
+    <!-- Two-column layout -->
+    <div class="dash-grid">
+
+      <!-- Upcoming events -->
+      <div class="card">
+        <div class="card-header">
+          <h2>Upcoming Events</h2>
+          <a href="/admin/calendar" class="btn btn-secondary btn-sm">See all</a>
+        </div>
+        <div id="upcoming-events">
+          <div class="skeleton-list">
+            <div class="skeleton-item"></div>
+            <div class="skeleton-item"></div>
+            <div class="skeleton-item"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Open tasks -->
+      <div class="card">
+        <div class="card-header">
+          <h2>Open Tasks</h2>
+          <a href="/admin/tasks" class="btn btn-secondary btn-sm">See all</a>
+        </div>
+        <div id="open-tasks">
+          <div class="skeleton-list">
+            <div class="skeleton-item"></div>
+            <div class="skeleton-item"></div>
+            <div class="skeleton-item"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent minutes -->
+      <div class="card">
+        <div class="card-header">
+          <h2>Recent Minutes</h2>
+          <a href="/admin/minutes" class="btn btn-secondary btn-sm">See all</a>
+        </div>
+        <div id="recent-minutes">
+          <div class="skeleton-list">
+            <div class="skeleton-item"></div>
+            <div class="skeleton-item"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Strike leaderboard -->
+      <div class="card">
+        <div class="card-header">
+          <h2>Strike Board</h2>
+          <a href="/admin/tasks" class="btn btn-secondary btn-sm">Manage</a>
+        </div>
+        <div id="strike-board">
+          <div class="skeleton-list">
+            <div class="skeleton-item"></div>
+            <div class="skeleton-item"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</AdminLayout>
+
+<script>
+const API = '/.netlify/functions/dashboard';
+const pw = () => localStorage.getItem('fbla_admin_pw') || '';
+const h = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${pw()}` });
+
+async function fetchResource(resource: string) {
+  const r = await fetch(`${API}?resource=${resource}`, { headers: h() });
+  if (!r.ok) return { items: [] };
+  return r.json();
+}
+
+const TYPE_COLORS: Record<string, string> = {
+  loop: '#8b5cf6',
+  officer: '#3b82f6',
+  irl: '#14b8a6',
+  event: '#f97316',
+  conference: '#ef4444',
+  fundraiser: '#22c55e',
+};
+const TYPE_LABELS: Record<string, string> = {
+  loop: 'LOOP', officer: 'Officer Mtg', irl: 'IRL', event: 'Event', conference: 'Conference', fundraiser: 'Fundraiser',
+};
+const MINUTES_LABELS: Record<string, string> = { officer: 'Officer Meeting', loop: 'LOOP Session', irl: 'IRL Meeting' };
+
+function fmtDate(d: string) {
+  return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+function isOverdue(deadline: string) {
+  return new Date(deadline) < new Date(new Date().toDateString());
+}
+
+// Greeting
+const hour = new Date().getHours();
+const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+document.getElementById('greeting')!.textContent = `${greet}. Here's what's happening with Irvington FBLA.`;
+
+async function load() {
+  const [evData, taskData, minData, strikeData] = await Promise.all([
+    fetchResource('events'),
+    fetchResource('tasks'),
+    fetchResource('minutes'),
+    fetchResource('strikes'),
+  ]);
+
+  const now = new Date();
+  const in30 = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+  const upcoming = (evData.items as any[])
+    .filter((e: any) => new Date(e.startDate) >= now && new Date(e.startDate) <= in30)
+    .sort((a: any, b: any) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+
+  const openTasks = (taskData.items as any[]).filter((t: any) => t.status !== 'done' && t.status !== 'missed');
+  const overdue = openTasks.filter((t: any) => isOverdue(t.deadline));
+
+  document.getElementById('stat-events')!.textContent = String(upcoming.length);
+  document.getElementById('stat-open-tasks')!.textContent = String(openTasks.length);
+  document.getElementById('stat-overdue')!.textContent = String(overdue.length);
+  document.getElementById('stat-minutes')!.textContent = String((minData.items as any[]).length);
+
+  // Upcoming events list
+  const evEl = document.getElementById('upcoming-events')!;
+  if (upcoming.length === 0) {
+    evEl.innerHTML = '<div class="empty-state"><p>No events in the next 30 days</p></div>';
+  } else {
+    evEl.innerHTML = upcoming.slice(0, 5).map((e: any) => `
+      <div class="list-item">
+        <div class="event-dot" style="background:${TYPE_COLORS[e.type] || '#94a3b8'}"></div>
+        <div class="list-item-body">
+          <div class="list-item-title">${e.title}</div>
+          <div class="list-item-sub">${fmtDate(e.startDate)} · <span class="badge" style="background:${TYPE_COLORS[e.type]}20;color:${TYPE_COLORS[e.type]}">${TYPE_LABELS[e.type] || e.type}</span></div>
+        </div>
+        ${e.meetingLink ? `<a href="${e.meetingLink}" target="_blank" class="btn btn-secondary btn-sm">Join</a>` : ''}
+      </div>
+    `).join('');
+  }
+
+  // Open tasks list
+  const taskEl = document.getElementById('open-tasks')!;
+  if (openTasks.length === 0) {
+    taskEl.innerHTML = '<div class="empty-state"><p>No open tasks — all caught up!</p></div>';
+  } else {
+    taskEl.innerHTML = openTasks.slice(0, 5).map((t: any) => {
+      const od = t.deadline && isOverdue(t.deadline);
+      return `
+        <div class="list-item">
+          <div class="status-dot ${t.status === 'in-progress' ? 'in-progress' : 'not-started'}"></div>
+          <div class="list-item-body">
+            <div class="list-item-title">${t.title}</div>
+            <div class="list-item-sub ${od ? 'overdue-text' : ''}">${t.deadline ? (od ? '⚠ Overdue · ' : '') + fmtDate(t.deadline) : 'No deadline'} · ${(t.assignedTo || []).join(', ') || 'Unassigned'}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Recent minutes
+  const minEl = document.getElementById('recent-minutes')!;
+  const sortedMin = [...(minData.items as any[])].sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  if (sortedMin.length === 0) {
+    minEl.innerHTML = '<div class="empty-state"><p>No meeting minutes yet</p></div>';
+  } else {
+    minEl.innerHTML = sortedMin.slice(0, 4).map((m: any) => `
+      <div class="list-item">
+        <div class="list-item-body">
+          <div class="list-item-title">${MINUTES_LABELS[m.type] || m.type}</div>
+          <div class="list-item-sub">${fmtDate(m.date)} · ${(m.attendees || []).length} attendees</div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // Strike board
+  const strikeEl = document.getElementById('strike-board')!;
+  const strikes = (strikeData.items as any[]).filter((s: any) => s.count > 0).sort((a: any, b: any) => b.count - a.count);
+  if (strikes.length === 0) {
+    strikeEl.innerHTML = '<div class="empty-state"><p>No strikes recorded — keep it up!</p></div>';
+  } else {
+    strikeEl.innerHTML = strikes.map((s: any) => `
+      <div class="list-item">
+        <div class="list-item-body">
+          <div class="list-item-title">${s.officerName}</div>
+          <div class="list-item-sub">${s.count} strike${s.count !== 1 ? 's' : ''}</div>
+        </div>
+        <span class="strike-badge">${s.count}</span>
+      </div>
+    `).join('');
+  }
+}
+
+load();
+</script>
+
+<style>
+.overdue { color: #dc2626 !important; }
+
+.dash-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 1.25rem;
+}
+
+.card-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 1.25rem;
+}
+.card-header h2 { font-size: 1rem; font-weight: 700; color: #0f172a; margin: 0; }
+
+.list-item {
+  display: flex; align-items: center; gap: 0.75rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+.list-item:last-child { border-bottom: none; }
+.list-item-body { flex: 1; min-width: 0; }
+.list-item-title { font-size: 0.875rem; font-weight: 600; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.list-item-sub { font-size: 0.78rem; color: #64748b; margin-top: 0.15rem; display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+.overdue-text { color: #dc2626 !important; }
+
+.event-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.status-dot.in-progress { background: #3b82f6; }
+.status-dot.not-started { background: #94a3b8; border: 2px solid #94a3b8; }
+
+.strike-badge {
+  background: #fef2f2; color: #dc2626;
+  font-size: 0.8rem; font-weight: 700;
+  padding: 0.15rem 0.6rem; border-radius: 50px;
+  border: 1px solid #fecaca;
+}
+
+.skeleton-list { display: flex; flex-direction: column; gap: 0.75rem; }
+.skeleton-item { height: 44px; background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 8px; }
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+</style>

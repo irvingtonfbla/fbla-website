@@ -1,0 +1,256 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+---
+
+<AdminLayout title="Awards" active="awards">
+  <div class="page-header">
+    <div>
+      <h1>Awards Showcase</h1>
+      <p>Manage FBLA achievements — shown publicly at <a href="/awards" target="_blank" style="color:#3b82f6">/awards</a></p>
+    </div>
+    <button class="btn btn-primary" id="add-award-btn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add Award
+    </button>
+  </div>
+
+  <div class="page-body">
+    <div id="awards-grid" class="awards-grid">
+      <div class="skeleton-grid">
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add/Edit Award Modal -->
+  <div class="modal-overlay" id="award-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="award-modal-title">Add Award</h2>
+        <button class="modal-close" id="award-modal-close">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="award-id" />
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Event / Competition *</label>
+            <input type="text" class="form-control" id="award-event" placeholder="e.g. State Leadership Conference" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Year *</label>
+            <input type="number" class="form-control" id="award-year" min="2020" max="2035" placeholder="2025" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Placement *</label>
+            <input type="text" class="form-control" id="award-placement" placeholder="e.g. 1st Place, Top 10, Qualifier" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Category</label>
+            <input type="text" class="form-control" id="award-category" placeholder="e.g. Business Calculations" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Team Members</label>
+          <input type="text" class="form-control" id="award-members" placeholder="Comma-separated names" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Photo URL</label>
+          <input type="url" class="form-control" id="award-photo" placeholder="https://... (optional)" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
+            <input type="checkbox" id="award-featured" style="width:16px;height:16px" />
+            Feature on awards page (shows first)
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-danger btn-sm" id="delete-award-btn" style="display:none">Delete</button>
+          <div style="flex:1"></div>
+          <button class="btn btn-secondary" id="award-modal-cancel">Cancel</button>
+          <button class="btn btn-primary" id="save-award-btn">Save Award</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</AdminLayout>
+
+<script>
+const API = '/.netlify/functions/dashboard';
+const pw = () => localStorage.getItem('fbla_admin_pw') || '';
+const h = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${pw()}` });
+
+let allAwards: any[] = [];
+let editingId: string | null = null;
+
+const PLACEMENT_COLORS: Record<string, string> = {
+  '1st': '#f59e0b', '2nd': '#94a3b8', '3rd': '#b45309',
+};
+function placementColor(p: string) {
+  for (const [key, color] of Object.entries(PLACEMENT_COLORS)) {
+    if (p.toLowerCase().startsWith(key)) return color;
+  }
+  return '#3b82f6';
+}
+
+function toast(msg: string, type = 'success') {
+  const el = document.getElementById('toast')!;
+  el.textContent = msg; el.className = `toast ${type} show`;
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+async function loadAwards() {
+  const r = await fetch(`${API}?resource=awards`);
+  const data = await r.json();
+  allAwards = (data.items || []).sort((a: any, b: any) => {
+    if (a.featured && !b.featured) return -1;
+    if (!a.featured && b.featured) return 1;
+    return b.year - a.year;
+  });
+  renderGrid();
+}
+
+function renderGrid() {
+  const el = document.getElementById('awards-grid')!;
+  if (allAwards.length === 0) {
+    el.innerHTML = '<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg><p>No awards yet — add your first one!</p></div>';
+    return;
+  }
+  el.innerHTML = `<div class="award-cards">${allAwards.map(a => {
+    const color = placementColor(a.placement || '');
+    return `
+      <div class="award-card">
+        ${a.featured ? '<div class="featured-tag">Featured</div>' : ''}
+        ${a.photo ? `<div class="award-photo" style="background-image:url(${a.photo})"></div>` : ''}
+        <div class="award-card-body">
+          <div class="award-placement" style="color:${color}">
+            <span class="trophy-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>
+            </span>
+            ${a.placement}
+          </div>
+          <div class="award-event">${a.event}</div>
+          <div class="award-meta">
+            ${a.category ? `<span class="badge badge-blue">${a.category}</span>` : ''}
+            <span class="badge badge-gray">${a.year}</span>
+          </div>
+          ${(a.members || []).length > 0 ? `<div class="award-members">${(a.members || []).join(', ')}</div>` : ''}
+        </div>
+        <div class="award-card-footer">
+          <button class="btn btn-secondary btn-sm edit-award-btn" data-id="${a.id}">Edit</button>
+        </div>
+      </div>
+    `;
+  }).join('')}</div>`;
+
+  el.querySelectorAll('.edit-award-btn').forEach(btn => {
+    btn.addEventListener('click', () => openEditAward((btn as HTMLElement).dataset.id!));
+  });
+}
+
+function openAddAward() {
+  editingId = null;
+  (document.getElementById('award-modal-title') as any).textContent = 'Add Award';
+  (document.getElementById('award-id') as any).value = '';
+  (document.getElementById('award-event') as any).value = '';
+  (document.getElementById('award-year') as any).value = new Date().getFullYear();
+  (document.getElementById('award-placement') as any).value = '';
+  (document.getElementById('award-category') as any).value = '';
+  (document.getElementById('award-members') as any).value = '';
+  (document.getElementById('award-photo') as any).value = '';
+  (document.getElementById('award-featured') as any).checked = false;
+  (document.getElementById('delete-award-btn') as any).style.display = 'none';
+  document.getElementById('award-modal')!.classList.add('open');
+}
+
+function openEditAward(id: string) {
+  const a = allAwards.find(x => x.id === id);
+  if (!a) return;
+  editingId = id;
+  (document.getElementById('award-modal-title') as any).textContent = 'Edit Award';
+  (document.getElementById('award-id') as any).value = id;
+  (document.getElementById('award-event') as any).value = a.event || '';
+  (document.getElementById('award-year') as any).value = a.year || '';
+  (document.getElementById('award-placement') as any).value = a.placement || '';
+  (document.getElementById('award-category') as any).value = a.category || '';
+  (document.getElementById('award-members') as any).value = (a.members || []).join(', ');
+  (document.getElementById('award-photo') as any).value = a.photo || '';
+  (document.getElementById('award-featured') as any).checked = !!a.featured;
+  (document.getElementById('delete-award-btn') as any).style.display = '';
+  document.getElementById('award-modal')!.classList.add('open');
+}
+
+function closeModal() { document.getElementById('award-modal')!.classList.remove('open'); }
+
+document.getElementById('add-award-btn')?.addEventListener('click', openAddAward);
+document.getElementById('award-modal-close')?.addEventListener('click', closeModal);
+document.getElementById('award-modal-cancel')?.addEventListener('click', closeModal);
+document.getElementById('award-modal')?.addEventListener('click', (e) => { if (e.target === e.currentTarget) closeModal(); });
+
+document.getElementById('save-award-btn')?.addEventListener('click', async () => {
+  const event = (document.getElementById('award-event') as HTMLInputElement).value.trim();
+  const year = parseInt((document.getElementById('award-year') as HTMLInputElement).value);
+  const placement = (document.getElementById('award-placement') as HTMLInputElement).value.trim();
+  const category = (document.getElementById('award-category') as HTMLInputElement).value.trim();
+  const membersRaw = (document.getElementById('award-members') as HTMLInputElement).value;
+  const members = membersRaw.split(',').map(s => s.trim()).filter(Boolean);
+  const photo = (document.getElementById('award-photo') as HTMLInputElement).value.trim();
+  const featured = (document.getElementById('award-featured') as HTMLInputElement).checked;
+
+  if (!event || !placement || !year) { toast('Event, placement, and year are required', 'error'); return; }
+
+  const payload = { event, year, placement, category: category || null, members, photo: photo || null, featured };
+  const btn = document.getElementById('save-award-btn') as HTMLButtonElement;
+  btn.textContent = 'Saving…'; btn.disabled = true;
+
+  try {
+    if (editingId) {
+      await fetch(`${API}?resource=awards`, { method: 'PUT', headers: h(), body: JSON.stringify({ id: editingId, ...payload }) });
+    } else {
+      await fetch(`${API}?resource=awards`, { method: 'POST', headers: h(), body: JSON.stringify(payload) });
+    }
+    await loadAwards();
+    closeModal();
+    toast(editingId ? 'Award updated' : 'Award added');
+  } catch { toast('Failed to save', 'error'); } finally { btn.textContent = 'Save Award'; btn.disabled = false; }
+});
+
+document.getElementById('delete-award-btn')?.addEventListener('click', async () => {
+  if (!editingId || !confirm('Delete this award?')) return;
+  try {
+    await fetch(`${API}?resource=awards`, { method: 'DELETE', headers: h(), body: JSON.stringify({ id: editingId }) });
+    await loadAwards(); closeModal(); toast('Award deleted');
+  } catch { toast('Failed to delete', 'error'); }
+});
+
+loadAwards();
+</script>
+
+<style>
+.award-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem; }
+.award-card { background: white; border: 1px solid #e2e8f0; border-radius: 14px; overflow: hidden; position: relative; transition: all 0.2s; }
+.award-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.08); transform: translateY(-2px); }
+.featured-tag { position: absolute; top: 0.75rem; right: 0.75rem; background: #f59e0b; color: white; font-size: 0.7rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 50px; text-transform: uppercase; }
+.award-photo { height: 140px; background-size: cover; background-position: center; }
+.award-card-body { padding: 1.25rem 1.25rem 0.75rem; }
+.award-placement { display: flex; align-items: center; gap: 0.4rem; font-size: 0.9rem; font-weight: 800; margin-bottom: 0.4rem; }
+.trophy-icon { display: flex; align-items: center; }
+.award-event { font-size: 1rem; font-weight: 700; color: #0f172a; margin-bottom: 0.5rem; }
+.award-meta { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.5rem; }
+.award-members { font-size: 0.8rem; color: #64748b; }
+.award-card-footer { padding: 0.875rem 1.25rem; border-top: 1px solid #f1f5f9; display: flex; justify-content: flex-end; }
+
+.skeleton-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem; }
+.skeleton-card { height: 220px; background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 14px; }
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.modal-actions { display: flex; gap: 0.75rem; align-items: center; margin-top: 1.5rem; }
+</style>

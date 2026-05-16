@@ -1,0 +1,457 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+---
+
+<AdminLayout title="Task Board" active="tasks">
+  <div class="page-header">
+    <div>
+      <h1>Task Board</h1>
+      <p>Assign work, track deadlines, and manage officer accountability</p>
+    </div>
+    <div style="display:flex;gap:0.75rem">
+      <div class="view-toggle">
+        <button class="view-btn active" id="view-board">Board</button>
+        <button class="view-btn" id="view-list">List</button>
+      </div>
+      <button class="btn btn-primary" id="add-task-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add Task
+      </button>
+    </div>
+  </div>
+
+  <div class="page-body">
+    <!-- Strike leaderboard banner -->
+    <div class="strike-banner card" id="strike-banner" style="display:none">
+      <div class="strike-banner-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Strike Board — counts toward officer app evaluations (10–15%)
+      </div>
+      <div id="strike-list"></div>
+    </div>
+
+    <!-- Board view -->
+    <div id="board-view">
+      <div class="kanban-grid">
+        <div class="kanban-col" data-status="not-started">
+          <div class="col-header">
+            <span class="col-dot" style="background:#94a3b8"></span>
+            <span class="col-title">Not Started</span>
+            <span class="col-count" id="count-not-started">0</span>
+          </div>
+          <div class="col-cards" id="col-not-started"></div>
+        </div>
+        <div class="kanban-col" data-status="in-progress">
+          <div class="col-header">
+            <span class="col-dot" style="background:#3b82f6"></span>
+            <span class="col-title">In Progress</span>
+            <span class="col-count" id="count-in-progress">0</span>
+          </div>
+          <div class="col-cards" id="col-in-progress"></div>
+        </div>
+        <div class="kanban-col" data-status="done">
+          <div class="col-header">
+            <span class="col-dot" style="background:#22c55e"></span>
+            <span class="col-title">Done</span>
+            <span class="col-count" id="count-done">0</span>
+          </div>
+          <div class="col-cards" id="col-done"></div>
+        </div>
+        <div class="kanban-col" data-status="missed">
+          <div class="col-header">
+            <span class="col-dot" style="background:#ef4444"></span>
+            <span class="col-title">Missed</span>
+            <span class="col-count" id="count-missed">0</span>
+          </div>
+          <div class="col-cards" id="col-missed"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- List view (hidden by default) -->
+    <div id="list-view" style="display:none">
+      <div class="card">
+        <table class="task-table">
+          <thead>
+            <tr>
+              <th>Task</th>
+              <th>Assigned To</th>
+              <th>Deadline</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="task-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add/Edit Task Modal -->
+  <div class="modal-overlay" id="task-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="task-modal-title">Add Task</h2>
+        <button class="modal-close" id="task-modal-close">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="task-id" />
+        <div class="form-group">
+          <label class="form-label">Task Title *</label>
+          <input type="text" class="form-control" id="task-title" placeholder="e.g. Design Minicon flyer" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <textarea class="form-control" id="task-desc" rows="3" placeholder="What needs to be done?"></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Assigned To</label>
+            <input type="text" class="form-control" id="task-assigned" placeholder="e.g. Alex, Jordan (comma-sep)" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Deadline</label>
+            <input type="date" class="form-control" id="task-deadline" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select class="form-control" id="task-status">
+            <option value="not-started">Not Started</option>
+            <option value="in-progress">In Progress</option>
+            <option value="done">Done</option>
+            <option value="missed">Missed</option>
+          </select>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-danger btn-sm" id="delete-task-btn" style="display:none">Delete</button>
+          <div style="flex:1"></div>
+          <button class="btn btn-secondary" id="task-modal-cancel">Cancel</button>
+          <button class="btn btn-primary" id="save-task-btn">Save Task</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</AdminLayout>
+
+<script>
+const API = '/.netlify/functions/dashboard';
+const pw = () => localStorage.getItem('fbla_admin_pw') || '';
+const h = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${pw()}` });
+
+let allTasks: any[] = [];
+let allStrikes: any[] = [];
+let editingTaskId: string | null = null;
+let currentView = 'board';
+
+const STATUS_LABELS: Record<string, string> = {
+  'not-started': 'Not Started', 'in-progress': 'In Progress', done: 'Done', missed: 'Missed',
+};
+const STATUS_COLORS: Record<string, string> = {
+  'not-started': '#94a3b8', 'in-progress': '#3b82f6', done: '#22c55e', missed: '#ef4444',
+};
+
+function fmtDate(d: string) {
+  return new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+function isOverdue(deadline: string, status: string) {
+  if (status === 'done' || status === 'missed') return false;
+  return new Date(deadline + 'T23:59:59') < new Date();
+}
+function toast(msg: string, type = 'success') {
+  const el = document.getElementById('toast')!;
+  el.textContent = msg; el.className = `toast ${type} show`;
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+async function loadData() {
+  const [taskRes, strikeRes] = await Promise.all([
+    fetch(`${API}?resource=tasks`, { headers: h() }),
+    fetch(`${API}?resource=strikes`, { headers: h() }),
+  ]);
+  allTasks = (await taskRes.json()).items || [];
+  allStrikes = (await strikeRes.json()).items || [];
+  render();
+}
+
+function renderStrikes() {
+  const banner = document.getElementById('strike-banner')!;
+  const list = document.getElementById('strike-list')!;
+  const withStrikes = allStrikes.filter(s => s.count > 0).sort((a, b) => b.count - a.count);
+  if (withStrikes.length === 0) { banner.style.display = 'none'; return; }
+  banner.style.display = '';
+  list.innerHTML = withStrikes.map(s => `
+    <div class="strike-officer">
+      <span class="strike-name">${s.officerName}</span>
+      <span class="strike-count">${s.count} strike${s.count !== 1 ? 's' : ''}</span>
+      <div class="strike-pips">${Array.from({length: Math.min(s.count, 5)}).map(() => '<span class="pip"></span>').join('')}</div>
+    </div>
+  `).join('');
+}
+
+function taskCard(task: any) {
+  const od = task.deadline && isOverdue(task.deadline, task.status);
+  const names = (task.assignedTo || []);
+  return `
+    <div class="task-card" data-id="${task.id}">
+      <div class="task-card-title">${task.title}</div>
+      ${task.description ? `<div class="task-card-desc">${task.description}</div>` : ''}
+      <div class="task-card-footer">
+        <div class="task-chips">
+          ${names.map((n: string) => `<span class="chip">${n}</span>`).join('')}
+        </div>
+        ${task.deadline ? `<span class="task-deadline ${od ? 'overdue' : ''}">${od ? '⚠ ' : ''}${fmtDate(task.deadline)}</span>` : ''}
+      </div>
+      <div class="task-card-actions">
+        <select class="status-select" data-id="${task.id}">
+          ${['not-started','in-progress','done','missed'].map(s => `<option value="${s}" ${s===task.status?'selected':''}>${STATUS_LABELS[s]}</option>`).join('')}
+        </select>
+        <button class="btn-icon edit-task-btn" data-id="${task.id}">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function renderBoard() {
+  const cols: Record<string, any[]> = { 'not-started': [], 'in-progress': [], done: [], missed: [] };
+  allTasks.forEach(t => { if (cols[t.status]) cols[t.status].push(t); });
+
+  Object.keys(cols).forEach(status => {
+    const el = document.getElementById(`col-${status}`)!;
+    const count = document.getElementById(`count-${status}`)!;
+    count.textContent = String(cols[status].length);
+    el.innerHTML = cols[status].length === 0
+      ? `<div class="col-empty">No tasks</div>`
+      : cols[status].map(taskCard).join('');
+  });
+
+  document.querySelectorAll('.status-select').forEach(sel => {
+    sel.addEventListener('change', async (e) => {
+      const el = e.target as HTMLSelectElement;
+      const id = el.dataset.id!;
+      const newStatus = el.value;
+      const task = allTasks.find(t => t.id === id);
+      if (!task) return;
+      await updateTaskStatus(id, newStatus, task);
+    });
+  });
+  document.querySelectorAll('.edit-task-btn').forEach(btn => {
+    btn.addEventListener('click', () => openEditTask((btn as HTMLElement).dataset.id!));
+  });
+}
+
+function renderList() {
+  const tbody = document.getElementById('task-table-body')!;
+  const sorted = [...allTasks].sort((a, b) => {
+    if (a.deadline && b.deadline) return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
+    return a.deadline ? -1 : 1;
+  });
+  tbody.innerHTML = sorted.map(t => {
+    const od = t.deadline && isOverdue(t.deadline, t.status);
+    const color = STATUS_COLORS[t.status] || '#94a3b8';
+    return `
+      <tr>
+        <td><span class="task-title-cell">${t.title}</span></td>
+        <td>${(t.assignedTo || []).join(', ') || '<span style="color:#94a3b8">—</span>'}</td>
+        <td class="${od ? 'overdue' : ''}">${t.deadline ? fmtDate(t.deadline) : '—'}</td>
+        <td><span class="badge" style="background:${color}20;color:${color}">${STATUS_LABELS[t.status]||t.status}</span></td>
+        <td><button class="btn-icon edit-task-btn" data-id="${t.id}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></td>
+      </tr>
+    `;
+  }).join('');
+  tbody.querySelectorAll('.edit-task-btn').forEach(btn => {
+    btn.addEventListener('click', () => openEditTask((btn as HTMLElement).dataset.id!));
+  });
+}
+
+function render() {
+  renderStrikes();
+  if (currentView === 'board') renderBoard(); else renderList();
+}
+
+async function updateTaskStatus(id: string, newStatus: string, task: any) {
+  try {
+    const res = await fetch(`${API}?resource=tasks`, {
+      method: 'PUT', headers: h(), body: JSON.stringify({ id, status: newStatus }),
+    });
+    if (!res.ok) throw new Error();
+
+    // If moved to missed, offer to add strikes
+    if (newStatus === 'missed' && (task.assignedTo || []).length > 0) {
+      const addStrike = confirm(`Task "${task.title}" marked as missed.\nAdd a strike to: ${task.assignedTo.join(', ')}?`);
+      if (addStrike) {
+        for (const name of task.assignedTo) {
+          await addStrikeForOfficer(name, task);
+        }
+        toast('Strikes recorded');
+      }
+    }
+    await loadData();
+    toast('Status updated');
+  } catch { toast('Failed to update', 'error'); }
+}
+
+async function addStrikeForOfficer(name: string, task: any) {
+  const existing = allStrikes.find(s => s.officerName === name);
+  const entry = { taskId: task.id, taskTitle: task.title, date: new Date().toISOString().slice(0, 10) };
+  if (existing) {
+    await fetch(`${API}?resource=strikes`, {
+      method: 'PUT', headers: h(),
+      body: JSON.stringify({ id: existing.id, count: existing.count + 1, history: [...(existing.history || []), entry] }),
+    });
+  } else {
+    await fetch(`${API}?resource=strikes`, {
+      method: 'POST', headers: h(),
+      body: JSON.stringify({ officerName: name, count: 1, history: [entry] }),
+    });
+  }
+}
+
+function openAddTask() {
+  editingTaskId = null;
+  (document.getElementById('task-modal-title') as any).textContent = 'Add Task';
+  (document.getElementById('task-id') as any).value = '';
+  (document.getElementById('task-title') as any).value = '';
+  (document.getElementById('task-desc') as any).value = '';
+  (document.getElementById('task-assigned') as any).value = '';
+  (document.getElementById('task-deadline') as any).value = '';
+  (document.getElementById('task-status') as any).value = 'not-started';
+  (document.getElementById('delete-task-btn') as any).style.display = 'none';
+  document.getElementById('task-modal')!.classList.add('open');
+}
+
+function openEditTask(id: string) {
+  const task = allTasks.find(t => t.id === id);
+  if (!task) return;
+  editingTaskId = id;
+  (document.getElementById('task-modal-title') as any).textContent = 'Edit Task';
+  (document.getElementById('task-id') as any).value = id;
+  (document.getElementById('task-title') as any).value = task.title || '';
+  (document.getElementById('task-desc') as any).value = task.description || '';
+  (document.getElementById('task-assigned') as any).value = (task.assignedTo || []).join(', ');
+  (document.getElementById('task-deadline') as any).value = task.deadline?.slice(0,10) || '';
+  (document.getElementById('task-status') as any).value = task.status || 'not-started';
+  (document.getElementById('delete-task-btn') as any).style.display = '';
+  document.getElementById('task-modal')!.classList.add('open');
+}
+
+function closeTaskModal() { document.getElementById('task-modal')!.classList.remove('open'); }
+
+document.getElementById('add-task-btn')?.addEventListener('click', openAddTask);
+document.getElementById('task-modal-close')?.addEventListener('click', closeTaskModal);
+document.getElementById('task-modal-cancel')?.addEventListener('click', closeTaskModal);
+document.getElementById('task-modal')?.addEventListener('click', (e) => { if (e.target === e.currentTarget) closeTaskModal(); });
+
+document.getElementById('save-task-btn')?.addEventListener('click', async () => {
+  const title = (document.getElementById('task-title') as HTMLInputElement).value.trim();
+  const description = (document.getElementById('task-desc') as HTMLTextAreaElement).value.trim();
+  const assignedRaw = (document.getElementById('task-assigned') as HTMLInputElement).value;
+  const assignedTo = assignedRaw.split(',').map(s => s.trim()).filter(Boolean);
+  const deadline = (document.getElementById('task-deadline') as HTMLInputElement).value;
+  const status = (document.getElementById('task-status') as HTMLSelectElement).value;
+
+  if (!title) { toast('Title is required', 'error'); return; }
+
+  const payload = { title, description: description || null, assignedTo, deadline: deadline || null, status };
+  const btn = document.getElementById('save-task-btn') as HTMLButtonElement;
+  btn.textContent = 'Saving…'; btn.disabled = true;
+
+  try {
+    if (editingTaskId) {
+      await fetch(`${API}?resource=tasks`, { method: 'PUT', headers: h(), body: JSON.stringify({ id: editingTaskId, ...payload }) });
+    } else {
+      await fetch(`${API}?resource=tasks`, { method: 'POST', headers: h(), body: JSON.stringify(payload) });
+    }
+    await loadData();
+    closeTaskModal();
+    toast(editingTaskId ? 'Task updated' : 'Task added');
+  } catch { toast('Failed to save', 'error'); } finally { btn.textContent = 'Save Task'; btn.disabled = false; }
+});
+
+document.getElementById('delete-task-btn')?.addEventListener('click', async () => {
+  if (!editingTaskId || !confirm('Delete this task?')) return;
+  try {
+    await fetch(`${API}?resource=tasks`, { method: 'DELETE', headers: h(), body: JSON.stringify({ id: editingTaskId }) });
+    await loadData(); closeTaskModal(); toast('Task deleted');
+  } catch { toast('Failed to delete', 'error'); }
+});
+
+// View toggle
+document.getElementById('view-board')?.addEventListener('click', () => {
+  currentView = 'board';
+  document.getElementById('board-view')!.style.display = '';
+  document.getElementById('list-view')!.style.display = 'none';
+  document.getElementById('view-board')!.classList.add('active');
+  document.getElementById('view-list')!.classList.remove('active');
+  renderBoard();
+});
+document.getElementById('view-list')?.addEventListener('click', () => {
+  currentView = 'list';
+  document.getElementById('board-view')!.style.display = 'none';
+  document.getElementById('list-view')!.style.display = '';
+  document.getElementById('view-board')!.classList.remove('active');
+  document.getElementById('view-list')!.classList.add('active');
+  renderList();
+});
+
+loadData();
+</script>
+
+<style>
+.view-toggle { display: flex; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+.view-btn { background: none; border: none; padding: 0.5rem 1rem; font-size: 0.875rem; font-weight: 500; cursor: pointer; color: #64748b; font-family: inherit; }
+.view-btn.active { background: #1e3a8a; color: white; }
+
+.strike-banner {
+  margin-bottom: 1.5rem;
+  background: linear-gradient(135deg, #fef2f2, #fff7ed);
+  border-color: #fca5a5;
+}
+.strike-banner-title { font-size: 0.85rem; font-weight: 700; color: #dc2626; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; }
+.strike-list-grid { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+#strike-list { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+.strike-officer { display: flex; align-items: center; gap: 0.5rem; background: white; border: 1px solid #fecaca; border-radius: 8px; padding: 0.5rem 0.875rem; }
+.strike-name { font-size: 0.875rem; font-weight: 600; color: #1e293b; }
+.strike-count { font-size: 0.75rem; color: #dc2626; font-weight: 600; }
+.strike-pips { display: flex; gap: 3px; }
+.pip { width: 8px; height: 8px; border-radius: 50%; background: #ef4444; }
+
+.kanban-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+@media (max-width: 1100px) { .kanban-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 600px) { .kanban-grid { grid-template-columns: 1fr; } }
+
+.kanban-col { background: #f8fafc; border-radius: 12px; padding: 1rem; min-height: 300px; }
+.col-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.875rem; }
+.col-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.col-title { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #475569; flex: 1; }
+.col-count { background: #e2e8f0; color: #64748b; font-size: 0.75rem; font-weight: 700; padding: 0.1rem 0.5rem; border-radius: 50px; }
+.col-empty { text-align: center; padding: 1.5rem 1rem; color: #94a3b8; font-size: 0.8rem; border: 2px dashed #e2e8f0; border-radius: 8px; }
+.col-cards { display: flex; flex-direction: column; gap: 0.75rem; }
+
+.task-card { background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 0.875rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04); cursor: default; }
+.task-card-title { font-size: 0.875rem; font-weight: 600; color: #1e293b; margin-bottom: 0.25rem; }
+.task-card-desc { font-size: 0.78rem; color: #64748b; margin-bottom: 0.5rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.task-card-footer { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.75rem; }
+.task-chips { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.chip { background: #eff6ff; color: #1d4ed8; font-size: 0.72rem; font-weight: 600; padding: 0.15rem 0.5rem; border-radius: 50px; }
+.task-deadline { font-size: 0.75rem; color: #64748b; white-space: nowrap; }
+.task-deadline.overdue { color: #dc2626; font-weight: 600; }
+.task-card-actions { display: flex; align-items: center; gap: 0.5rem; }
+.status-select { flex: 1; padding: 0.3rem 0.5rem; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.75rem; font-family: inherit; color: #374151; cursor: pointer; }
+
+.task-table { width: 100%; border-collapse: collapse; }
+.task-table th { text-align: left; font-size: 0.78rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.75rem 1rem; border-bottom: 1px solid #e2e8f0; }
+.task-table td { padding: 0.875rem 1rem; border-bottom: 1px solid #f1f5f9; font-size: 0.875rem; color: #374151; }
+.task-table tr:last-child td { border-bottom: none; }
+.task-title-cell { font-weight: 600; color: #1e293b; }
+.overdue { color: #dc2626; font-weight: 600; }
+
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.modal-actions { display: flex; gap: 0.75rem; align-items: center; margin-top: 1.5rem; }
+</style>

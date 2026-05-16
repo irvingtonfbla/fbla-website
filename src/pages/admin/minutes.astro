@@ -1,0 +1,316 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+---
+
+<AdminLayout title="Meeting Minutes" active="minutes">
+  <div class="page-header">
+    <div>
+      <h1>Meeting Minutes</h1>
+      <p>Record and browse all officer, LOOP, and IRL meeting notes</p>
+    </div>
+    <button class="btn btn-primary" id="add-minutes-btn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add Minutes
+    </button>
+  </div>
+
+  <div class="page-body">
+    <!-- Filter bar -->
+    <div class="filter-bar">
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="officer">Officer Meetings</button>
+      <button class="filter-btn" data-filter="loop">LOOP Sessions</button>
+      <button class="filter-btn" data-filter="irl">IRL Meetings</button>
+    </div>
+
+    <div class="minutes-layout">
+      <!-- List -->
+      <div class="minutes-list" id="minutes-list">
+        <div class="skeleton-list">
+          <div class="skeleton-item"></div>
+          <div class="skeleton-item"></div>
+          <div class="skeleton-item"></div>
+          <div class="skeleton-item"></div>
+        </div>
+      </div>
+
+      <!-- Content panel -->
+      <div class="minutes-content card" id="minutes-content">
+        <div class="content-placeholder">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:0.25"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <p>Select a meeting from the list to view its minutes</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add/Edit Minutes Modal -->
+  <div class="modal-overlay" id="minutes-modal">
+    <div class="modal" style="max-width:640px">
+      <div class="modal-header">
+        <h2 id="minutes-modal-title">Add Meeting Minutes</h2>
+        <button class="modal-close" id="minutes-modal-close">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="minutes-id" />
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Meeting Type *</label>
+            <select class="form-control" id="minutes-type">
+              <option value="officer">Officer Meeting</option>
+              <option value="loop">LOOP Session</option>
+              <option value="irl">IRL Meeting</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Date *</label>
+            <input type="date" class="form-control" id="minutes-date" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Attendees</label>
+          <input type="text" class="form-control" id="minutes-attendees" placeholder="Comma-separated names, e.g. Alex, Jordan, Sam" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Meeting Notes *</label>
+          <textarea class="form-control notes-editor" id="minutes-notes" rows="12" placeholder="Record what was discussed, decisions made, action items, etc."></textarea>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-danger btn-sm" id="delete-minutes-btn" style="display:none">Delete</button>
+          <div style="flex:1"></div>
+          <button class="btn btn-secondary" id="minutes-modal-cancel">Cancel</button>
+          <button class="btn btn-primary" id="save-minutes-btn">Save Minutes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</AdminLayout>
+
+<script>
+const API = '/.netlify/functions/dashboard';
+const pw = () => localStorage.getItem('fbla_admin_pw') || '';
+const h = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${pw()}` });
+
+let allMinutes: any[] = [];
+let currentFilter = 'all';
+let selectedId: string | null = null;
+let editingId: string | null = null;
+
+const TYPE_LABELS: Record<string, string> = { officer: 'Officer Meeting', loop: 'LOOP Session', irl: 'IRL Meeting' };
+const TYPE_COLORS: Record<string, string> = { officer: '#3b82f6', loop: '#8b5cf6', irl: '#14b8a6' };
+
+function fmtDate(d: string) {
+  return new Date(d + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+}
+function fmtDateShort(d: string) {
+  return new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+function toast(msg: string, type = 'success') {
+  const el = document.getElementById('toast')!;
+  el.textContent = msg; el.className = `toast ${type} show`;
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+async function loadMinutes() {
+  const r = await fetch(`${API}?resource=minutes`, { headers: h() });
+  const data = await r.json();
+  allMinutes = (data.items || []).sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  renderList();
+}
+
+function getFiltered() {
+  return currentFilter === 'all' ? allMinutes : allMinutes.filter(m => m.type === currentFilter);
+}
+
+function renderList() {
+  const el = document.getElementById('minutes-list')!;
+  const filtered = getFiltered();
+  if (filtered.length === 0) {
+    el.innerHTML = '<div class="empty-state"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><p>No minutes found</p></div>';
+    return;
+  }
+  el.innerHTML = filtered.map(m => `
+    <div class="minutes-row ${selectedId === m.id ? 'selected' : ''}" data-id="${m.id}">
+      <div class="minutes-row-color" style="background:${TYPE_COLORS[m.type]||'#94a3b8'}"></div>
+      <div class="minutes-row-body">
+        <div class="minutes-row-type">${TYPE_LABELS[m.type] || m.type}</div>
+        <div class="minutes-row-date">${fmtDateShort(m.date)}</div>
+        <div class="minutes-row-meta">${(m.attendees || []).length} attendees</div>
+      </div>
+    </div>
+  `).join('');
+
+  el.querySelectorAll('.minutes-row').forEach(row => {
+    row.addEventListener('click', () => {
+      selectedId = (row as HTMLElement).dataset.id!;
+      renderList();
+      renderContent();
+    });
+  });
+}
+
+function renderContent() {
+  const el = document.getElementById('minutes-content')!;
+  if (!selectedId) {
+    el.innerHTML = '<div class="content-placeholder"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:0.25"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><p>Select a meeting from the list to view its minutes</p></div>';
+    return;
+  }
+  const m = allMinutes.find(x => x.id === selectedId);
+  if (!m) return;
+  const color = TYPE_COLORS[m.type] || '#94a3b8';
+  el.innerHTML = `
+    <div class="content-header">
+      <div class="content-type-tag" style="background:${color}20;color:${color}">${TYPE_LABELS[m.type] || m.type}</div>
+      <div class="content-date">${fmtDate(m.date)}</div>
+      <button class="btn btn-secondary btn-sm" id="edit-these-minutes">Edit</button>
+    </div>
+    ${(m.attendees || []).length > 0 ? `
+      <div class="content-attendees">
+        <span class="attendees-label">Attendees:</span>
+        ${m.attendees.map((a: string) => `<span class="chip">${a}</span>`).join('')}
+      </div>
+    ` : ''}
+    <div class="content-notes">${escapeHtml(m.notes || '').replace(/\n/g, '<br>')}</div>
+  `;
+  document.getElementById('edit-these-minutes')?.addEventListener('click', () => openEditMinutes(selectedId!));
+}
+
+function escapeHtml(text: string) {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function openAddMinutes() {
+  editingId = null;
+  (document.getElementById('minutes-modal-title') as any).textContent = 'Add Meeting Minutes';
+  (document.getElementById('minutes-id') as any).value = '';
+  (document.getElementById('minutes-type') as any).value = 'officer';
+  (document.getElementById('minutes-date') as any).value = new Date().toISOString().slice(0,10);
+  (document.getElementById('minutes-attendees') as any).value = '';
+  (document.getElementById('minutes-notes') as any).value = '';
+  (document.getElementById('delete-minutes-btn') as any).style.display = 'none';
+  document.getElementById('minutes-modal')!.classList.add('open');
+}
+
+function openEditMinutes(id: string) {
+  const m = allMinutes.find(x => x.id === id);
+  if (!m) return;
+  editingId = id;
+  (document.getElementById('minutes-modal-title') as any).textContent = 'Edit Minutes';
+  (document.getElementById('minutes-id') as any).value = id;
+  (document.getElementById('minutes-type') as any).value = m.type || 'officer';
+  (document.getElementById('minutes-date') as any).value = m.date?.slice(0,10) || '';
+  (document.getElementById('minutes-attendees') as any).value = (m.attendees || []).join(', ');
+  (document.getElementById('minutes-notes') as any).value = m.notes || '';
+  (document.getElementById('delete-minutes-btn') as any).style.display = '';
+  document.getElementById('minutes-modal')!.classList.add('open');
+}
+
+function closeMinutesModal() { document.getElementById('minutes-modal')!.classList.remove('open'); }
+
+document.getElementById('add-minutes-btn')?.addEventListener('click', openAddMinutes);
+document.getElementById('minutes-modal-close')?.addEventListener('click', closeMinutesModal);
+document.getElementById('minutes-modal-cancel')?.addEventListener('click', closeMinutesModal);
+document.getElementById('minutes-modal')?.addEventListener('click', (e) => { if (e.target === e.currentTarget) closeMinutesModal(); });
+
+document.getElementById('save-minutes-btn')?.addEventListener('click', async () => {
+  const type = (document.getElementById('minutes-type') as HTMLSelectElement).value;
+  const date = (document.getElementById('minutes-date') as HTMLInputElement).value;
+  const attendeesRaw = (document.getElementById('minutes-attendees') as HTMLInputElement).value;
+  const notes = (document.getElementById('minutes-notes') as HTMLTextAreaElement).value.trim();
+  const attendees = attendeesRaw.split(',').map(s => s.trim()).filter(Boolean);
+
+  if (!date || !notes) { toast('Date and notes are required', 'error'); return; }
+
+  const payload = { type, date, attendees, notes };
+  const btn = document.getElementById('save-minutes-btn') as HTMLButtonElement;
+  btn.textContent = 'Saving…'; btn.disabled = true;
+
+  try {
+    if (editingId) {
+      await fetch(`${API}?resource=minutes`, { method: 'PUT', headers: h(), body: JSON.stringify({ id: editingId, ...payload }) });
+    } else {
+      await fetch(`${API}?resource=minutes`, { method: 'POST', headers: h(), body: JSON.stringify(payload) });
+    }
+    await loadMinutes();
+    closeMinutesModal();
+    toast(editingId ? 'Minutes updated' : 'Minutes saved');
+  } catch { toast('Failed to save', 'error'); } finally { btn.textContent = 'Save Minutes'; btn.disabled = false; }
+});
+
+document.getElementById('delete-minutes-btn')?.addEventListener('click', async () => {
+  if (!editingId || !confirm('Delete these minutes?')) return;
+  try {
+    await fetch(`${API}?resource=minutes`, { method: 'DELETE', headers: h(), body: JSON.stringify({ id: editingId }) });
+    selectedId = null;
+    await loadMinutes();
+    renderContent();
+    closeMinutesModal();
+    toast('Minutes deleted');
+  } catch { toast('Failed to delete', 'error'); }
+});
+
+// Filters
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    currentFilter = (btn as HTMLElement).dataset.filter!;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderList();
+  });
+});
+
+loadMinutes();
+</script>
+
+<style>
+.filter-bar { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+.filter-btn { background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.45rem 1rem; font-size: 0.8rem; font-weight: 600; color: #64748b; cursor: pointer; font-family: inherit; transition: all 0.15s; }
+.filter-btn.active { background: #1e3a8a; color: white; border-color: #1e3a8a; }
+.filter-btn:hover:not(.active) { border-color: #94a3b8; }
+
+.minutes-layout { display: grid; grid-template-columns: 300px 1fr; gap: 1.25rem; }
+@media (max-width: 900px) { .minutes-layout { grid-template-columns: 1fr; } }
+
+.minutes-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.minutes-row {
+  display: flex; align-items: stretch; background: white; border: 1px solid #e2e8f0;
+  border-radius: 10px; overflow: hidden; cursor: pointer; transition: all 0.15s;
+}
+.minutes-row:hover { border-color: #3b82f6; box-shadow: 0 2px 8px rgba(59,130,246,0.1); }
+.minutes-row.selected { border-color: #1e3a8a; box-shadow: 0 0 0 2px rgba(30,58,138,0.15); }
+.minutes-row-color { width: 4px; flex-shrink: 0; }
+.minutes-row-body { padding: 0.875rem 1rem; flex: 1; }
+.minutes-row-type { font-size: 0.875rem; font-weight: 700; color: #1e293b; }
+.minutes-row-date { font-size: 0.8rem; color: #64748b; margin-top: 0.1rem; }
+.minutes-row-meta { font-size: 0.75rem; color: #94a3b8; margin-top: 0.2rem; }
+
+.content-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 300px; gap: 1rem; color: #94a3b8; text-align: center; }
+.content-placeholder p { font-size: 0.9rem; margin: 0; }
+
+.content-header { display: flex; align-items: center; gap: 0.875rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
+.content-type-tag { font-size: 0.8rem; font-weight: 700; padding: 0.25rem 0.75rem; border-radius: 50px; }
+.content-date { font-size: 1rem; font-weight: 700; color: #0f172a; flex: 1; }
+
+.content-attendees { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; margin-bottom: 1.5rem; }
+.attendees-label { font-size: 0.8rem; font-weight: 600; color: #64748b; margin-right: 0.25rem; }
+.chip { background: #eff6ff; color: #1d4ed8; font-size: 0.75rem; font-weight: 600; padding: 0.2rem 0.6rem; border-radius: 50px; }
+
+.content-notes {
+  font-size: 0.9rem; line-height: 1.75; color: #374151;
+  white-space: pre-wrap; background: #f8fafc; border-radius: 8px;
+  padding: 1.25rem; border: 1px solid #e2e8f0;
+}
+
+.notes-editor { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; line-height: 1.7; min-height: 200px; }
+
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.modal-actions { display: flex; gap: 0.75rem; align-items: center; margin-top: 1.5rem; }
+
+.skeleton-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.skeleton-item { height: 72px; background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 10px; }
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+</style>

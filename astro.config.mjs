@@ -6,5 +6,6 @@ import sitemap from '@astrojs/sitemap';
 // https://astro.build/config
 export default defineConfig({
   site: 'https://irvingtonfbla.org',
-  integrations: [sitemap()]
+  integrations: [sitemap()],
+  server: { port: 4322 },
 });

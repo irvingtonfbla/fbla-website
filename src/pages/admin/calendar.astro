@@ -1,0 +1,440 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+---
+
+<AdminLayout title="Master Calendar" active="calendar">
+  <div class="page-header">
+    <div>
+      <h1>Master Calendar</h1>
+      <p>All FBLA events, meetings, and conferences in one place</p>
+    </div>
+    <button class="btn btn-primary" id="add-event-btn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add Event
+    </button>
+  </div>
+
+  <div class="page-body">
+    <!-- Legend -->
+    <div class="legend">
+      <span class="legend-item"><span class="leg-dot" style="background:#8b5cf6"></span>LOOP Session</span>
+      <span class="legend-item"><span class="leg-dot" style="background:#3b82f6"></span>Officer Meeting</span>
+      <span class="legend-item"><span class="leg-dot" style="background:#14b8a6"></span>IRL Meeting</span>
+      <span class="legend-item"><span class="leg-dot" style="background:#f97316"></span>Event</span>
+      <span class="legend-item"><span class="leg-dot" style="background:#ef4444"></span>Conference</span>
+      <span class="legend-item"><span class="leg-dot" style="background:#22c55e"></span>Fundraiser</span>
+    </div>
+
+    <div class="cal-layout">
+      <!-- Calendar grid -->
+      <div class="cal-panel card">
+        <div class="cal-nav">
+          <button class="btn-icon" id="prev-month">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <h2 id="cal-title">Loading…</h2>
+          <button class="btn-icon" id="next-month">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+
+        <div class="cal-grid">
+          <div class="cal-day-header">Sun</div>
+          <div class="cal-day-header">Mon</div>
+          <div class="cal-day-header">Tue</div>
+          <div class="cal-day-header">Wed</div>
+          <div class="cal-day-header">Thu</div>
+          <div class="cal-day-header">Fri</div>
+          <div class="cal-day-header">Sat</div>
+          <div id="cal-cells"></div>
+        </div>
+      </div>
+
+      <!-- Event list sidebar -->
+      <div class="event-list-panel">
+        <div class="card">
+          <div class="card-header">
+            <h2 id="events-for-label">All Upcoming</h2>
+            <button class="btn btn-secondary btn-sm" id="clear-day-filter" style="display:none">Show all</button>
+          </div>
+          <div id="event-list-content">
+            <div class="skeleton-list">
+              <div class="skeleton-item"></div>
+              <div class="skeleton-item"></div>
+              <div class="skeleton-item"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add / Edit Event Modal -->
+  <div class="modal-overlay" id="event-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modal-title">Add Event</h2>
+        <button class="modal-close" id="modal-close">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="event-id" />
+        <div class="form-group">
+          <label class="form-label">Event Title *</label>
+          <input type="text" class="form-control" id="event-title" placeholder="e.g. Bay Section Conference" />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Type *</label>
+            <select class="form-control" id="event-type">
+              <option value="loop">LOOP Session</option>
+              <option value="officer">Officer Meeting</option>
+              <option value="irl">IRL Meeting</option>
+              <option value="event">Event</option>
+              <option value="conference">Conference</option>
+              <option value="fundraiser">Fundraiser</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Start Date *</label>
+            <input type="date" class="form-control" id="event-start" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">End Date</label>
+            <input type="date" class="form-control" id="event-end" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Meeting Link</label>
+            <input type="url" class="form-control" id="event-link" placeholder="https://zoom.us/..." />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <textarea class="form-control" id="event-desc" rows="3" placeholder="Optional notes about this event…"></textarea>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" id="delete-event-btn" style="display:none">Delete</button>
+          <div style="flex:1"></div>
+          <button class="btn btn-secondary" id="modal-cancel">Cancel</button>
+          <button class="btn btn-primary" id="save-event-btn">Save Event</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+</AdminLayout>
+
+<script>
+const API = '/.netlify/functions/dashboard';
+const pw = () => localStorage.getItem('fbla_admin_pw') || '';
+const h = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${pw()}` });
+
+const TYPE_COLORS: Record<string, string> = {
+  loop: '#8b5cf6', officer: '#3b82f6', irl: '#14b8a6',
+  event: '#f97316', conference: '#ef4444', fundraiser: '#22c55e',
+};
+const TYPE_LABELS: Record<string, string> = {
+  loop: 'LOOP', officer: 'Officer Mtg', irl: 'IRL', event: 'Event',
+  conference: 'Conference', fundraiser: 'Fundraiser',
+};
+
+let allEvents: any[] = [];
+let currentYear = new Date().getFullYear();
+let currentMonth = new Date().getMonth();
+let selectedDay: string | null = null;
+let editingId: string | null = null;
+
+function fmtDate(d: string) {
+  return new Date(d + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+}
+function toast(msg: string, type = 'success') {
+  const el = document.getElementById('toast')!;
+  el.textContent = msg; el.className = `toast ${type} show`;
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+function localDateStr(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+}
+
+async function loadEvents() {
+  const r = await fetch(`${API}?resource=events`, { headers: h() });
+  const data = await r.json();
+  allEvents = data.items || [];
+  renderCalendar();
+  renderEventList();
+}
+
+function renderCalendar() {
+  const title = document.getElementById('cal-title')!;
+  const cells = document.getElementById('cal-cells')!;
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  title.textContent = `${monthNames[currentMonth]} ${currentYear}`;
+
+  const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const today = localDateStr(new Date());
+
+  let html = '';
+  // empty cells before first day
+  for (let i = 0; i < firstDay; i++) html += '<div class="cal-cell empty"></div>';
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dayEvents = allEvents.filter(e => {
+      const start = e.startDate?.slice(0,10);
+      const end = e.endDate?.slice(0,10) || start;
+      return dateStr >= start && dateStr <= end;
+    });
+    const isToday = dateStr === today;
+    const isSelected = dateStr === selectedDay;
+    const dots = dayEvents.slice(0, 3).map(e =>
+      `<span class="cal-dot" style="background:${TYPE_COLORS[e.type]||'#94a3b8'}"></span>`
+    ).join('');
+    html += `<div class="cal-cell${isToday?' today':''}${isSelected?' selected':''}" data-date="${dateStr}">
+      <span class="cal-day-num">${d}</span>
+      <div class="cal-dots">${dots}</div>
+    </div>`;
+  }
+  cells.innerHTML = html;
+
+  // Click handler for days
+  cells.querySelectorAll('.cal-cell:not(.empty)').forEach(cell => {
+    cell.addEventListener('click', () => {
+      selectedDay = (cell as HTMLElement).dataset.date!;
+      renderCalendar();
+      renderEventList(selectedDay);
+    });
+  });
+}
+
+function renderEventList(day?: string | null) {
+  const el = document.getElementById('event-list-content')!;
+  const label = document.getElementById('events-for-label')!;
+  const clearBtn = document.getElementById('clear-day-filter')!;
+  const now = new Date();
+
+  let events: any[];
+  if (day) {
+    label.textContent = fmtDate(day);
+    clearBtn.style.display = '';
+    events = allEvents.filter(e => {
+      const start = e.startDate?.slice(0,10);
+      const end = e.endDate?.slice(0,10) || start;
+      return day >= start && day <= end;
+    });
+  } else {
+    label.textContent = 'All Upcoming';
+    clearBtn.style.display = 'none';
+    events = allEvents
+      .filter(e => new Date(e.startDate) >= now)
+      .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+  }
+
+  if (events.length === 0) {
+    el.innerHTML = '<div class="empty-state"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg><p>No events here</p></div>';
+    return;
+  }
+
+  el.innerHTML = events.map(e => `
+    <div class="event-row" data-id="${e.id}">
+      <div class="event-color-bar" style="background:${TYPE_COLORS[e.type]||'#94a3b8'}"></div>
+      <div class="event-row-body">
+        <div class="event-row-title">${e.title}</div>
+        <div class="event-row-meta">
+          <span>${fmtDate(e.startDate)}${e.endDate && e.endDate !== e.startDate ? ' → ' + fmtDate(e.endDate) : ''}</span>
+          <span class="badge" style="background:${TYPE_COLORS[e.type]||'#f1f5f9'}20;color:${TYPE_COLORS[e.type]||'#64748b'}">${TYPE_LABELS[e.type]||e.type}</span>
+        </div>
+        ${e.description ? `<div class="event-row-desc">${e.description}</div>` : ''}
+      </div>
+      <div class="event-row-actions">
+        ${e.meetingLink ? `<a href="${e.meetingLink}" target="_blank" class="btn btn-secondary btn-sm">Join</a>` : ''}
+        <button class="btn-icon edit-event-btn" data-id="${e.id}" title="Edit">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+      </div>
+    </div>
+  `).join('');
+
+  el.querySelectorAll('.edit-event-btn').forEach(btn => {
+    btn.addEventListener('click', () => openEditModal((btn as HTMLElement).dataset.id!));
+  });
+}
+
+function openAddModal() {
+  editingId = null;
+  (document.getElementById('modal-title') as any).textContent = 'Add Event';
+  (document.getElementById('event-id') as any).value = '';
+  (document.getElementById('event-title') as any).value = '';
+  (document.getElementById('event-type') as any).value = 'loop';
+  (document.getElementById('event-start') as any).value = selectedDay || '';
+  (document.getElementById('event-end') as any).value = '';
+  (document.getElementById('event-link') as any).value = '';
+  (document.getElementById('event-desc') as any).value = '';
+  (document.getElementById('delete-event-btn') as any).style.display = 'none';
+  document.getElementById('event-modal')!.classList.add('open');
+}
+
+function openEditModal(id: string) {
+  const ev = allEvents.find(e => e.id === id);
+  if (!ev) return;
+  editingId = id;
+  (document.getElementById('modal-title') as any).textContent = 'Edit Event';
+  (document.getElementById('event-id') as any).value = id;
+  (document.getElementById('event-title') as any).value = ev.title || '';
+  (document.getElementById('event-type') as any).value = ev.type || 'event';
+  (document.getElementById('event-start') as any).value = ev.startDate?.slice(0,10) || '';
+  (document.getElementById('event-end') as any).value = ev.endDate?.slice(0,10) || '';
+  (document.getElementById('event-link') as any).value = ev.meetingLink || '';
+  (document.getElementById('event-desc') as any).value = ev.description || '';
+  (document.getElementById('delete-event-btn') as any).style.display = '';
+  document.getElementById('event-modal')!.classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('event-modal')!.classList.remove('open');
+}
+
+document.getElementById('add-event-btn')?.addEventListener('click', openAddModal);
+document.getElementById('modal-close')?.addEventListener('click', closeModal);
+document.getElementById('modal-cancel')?.addEventListener('click', closeModal);
+document.getElementById('event-modal')?.addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) closeModal();
+});
+
+document.getElementById('clear-day-filter')?.addEventListener('click', () => {
+  selectedDay = null;
+  renderCalendar();
+  renderEventList();
+});
+
+document.getElementById('prev-month')?.addEventListener('click', () => {
+  currentMonth--; if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+  renderCalendar();
+});
+document.getElementById('next-month')?.addEventListener('click', () => {
+  currentMonth++; if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+  renderCalendar();
+});
+
+document.getElementById('save-event-btn')?.addEventListener('click', async () => {
+  const title = (document.getElementById('event-title') as HTMLInputElement).value.trim();
+  const type = (document.getElementById('event-type') as HTMLSelectElement).value;
+  const startDate = (document.getElementById('event-start') as HTMLInputElement).value;
+  const endDate = (document.getElementById('event-end') as HTMLInputElement).value;
+  const meetingLink = (document.getElementById('event-link') as HTMLInputElement).value.trim();
+  const description = (document.getElementById('event-desc') as HTMLTextAreaElement).value.trim();
+
+  if (!title || !startDate) { toast('Title and start date are required', 'error'); return; }
+
+  const payload = { title, type, startDate, endDate: endDate || null, meetingLink: meetingLink || null, description: description || null };
+  const btn = document.getElementById('save-event-btn') as HTMLButtonElement;
+  btn.textContent = 'Saving…'; btn.disabled = true;
+
+  try {
+    let res;
+    if (editingId) {
+      res = await fetch(`${API}?resource=events`, { method: 'PUT', headers: h(), body: JSON.stringify({ id: editingId, ...payload }) });
+    } else {
+      res = await fetch(`${API}?resource=events`, { method: 'POST', headers: h(), body: JSON.stringify(payload) });
+    }
+    if (!res.ok) throw new Error(await res.text());
+    await loadEvents();
+    closeModal();
+    toast(editingId ? 'Event updated' : 'Event added');
+  } catch (err) {
+    toast('Failed to save', 'error');
+  } finally {
+    btn.textContent = 'Save Event'; btn.disabled = false;
+  }
+});
+
+document.getElementById('delete-event-btn')?.addEventListener('click', async () => {
+  if (!editingId || !confirm('Delete this event?')) return;
+  try {
+    await fetch(`${API}?resource=events`, { method: 'DELETE', headers: h(), body: JSON.stringify({ id: editingId }) });
+    await loadEvents();
+    closeModal();
+    toast('Event deleted');
+  } catch {
+    toast('Failed to delete', 'error');
+  }
+});
+
+loadEvents();
+</script>
+
+<style>
+.legend {
+  display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.5rem;
+}
+.legend-item { display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; color: #64748b; }
+.leg-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+.cal-layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 1.25rem;
+  align-items: start;
+}
+@media (max-width: 1000px) { .cal-layout { grid-template-columns: 1fr; } }
+
+.cal-nav {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 1rem;
+}
+.cal-nav h2 { font-size: 1.1rem; font-weight: 700; color: #0f172a; margin: 0; }
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+#cal-cells {
+  display: contents;
+}
+.cal-day-header {
+  text-align: center; font-size: 0.72rem; font-weight: 600; color: #94a3b8;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  padding: 0.5rem 0;
+}
+.cal-cell {
+  min-height: 72px; padding: 0.4rem 0.35rem 0.3rem; border-radius: 8px;
+  cursor: pointer; transition: background 0.15s; position: relative;
+}
+.cal-cell:hover { background: #f1f5f9; }
+.cal-cell.today .cal-day-num { background: #1e3a8a; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; }
+.cal-cell.selected { background: #eff6ff; outline: 2px solid #3b82f6; }
+.cal-cell.empty { cursor: default; }
+.cal-day-num { font-size: 0.82rem; font-weight: 600; color: #374151; display: inline-block; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; margin-bottom: 0.2rem; }
+.cal-dots { display: flex; gap: 2px; flex-wrap: wrap; }
+.cal-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+/* Event list */
+.event-list-panel {}
+.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+.card-header h2 { font-size: 0.95rem; font-weight: 700; color: #0f172a; margin: 0; }
+
+.event-row {
+  display: flex; align-items: flex-start; gap: 0.75rem;
+  padding: 0.875rem 0; border-bottom: 1px solid #f1f5f9;
+}
+.event-row:last-child { border-bottom: none; }
+.event-color-bar { width: 3px; border-radius: 3px; min-height: 40px; flex-shrink: 0; margin-top: 2px; }
+.event-row-body { flex: 1; min-width: 0; }
+.event-row-title { font-size: 0.875rem; font-weight: 600; color: #1e293b; }
+.event-row-meta { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; font-size: 0.78rem; color: #64748b; margin-top: 0.2rem; }
+.event-row-desc { font-size: 0.78rem; color: #94a3b8; margin-top: 0.25rem; }
+.event-row-actions { display: flex; gap: 0.4rem; align-items: center; flex-shrink: 0; }
+
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.modal-actions { display: flex; gap: 0.75rem; align-items: center; margin-top: 1.5rem; }
+
+.skeleton-list { display: flex; flex-direction: column; gap: 0.75rem; }
+.skeleton-item { height: 60px; background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 8px; }
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+</style>

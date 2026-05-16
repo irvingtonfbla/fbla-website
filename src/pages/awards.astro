@@ -1,0 +1,229 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Awards & Achievements | Irvington FBLA" description="Irvington FBLA's competition achievements and recognition starting from 2025.">
+
+  <section class="awards-hero">
+    <div class="container">
+      <span class="badge">Achievements</span>
+      <h1>Awards Showcase</h1>
+      <p>Irvington FBLA's competition achievements and recognition</p>
+    </div>
+  </section>
+
+  <section class="awards-section">
+    <div class="container">
+      <div id="awards-loading" class="loading-state">
+        <div class="spinner"></div>
+        <p>Loading achievements…</p>
+      </div>
+
+      <div id="awards-empty" style="display:none" class="empty-showcase">
+        <div class="empty-trophy">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="12" cy="8" r="6"/>
+            <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
+          </svg>
+        </div>
+        <h2>Awards Coming Soon</h2>
+        <p>Check back after our next competition season!</p>
+      </div>
+
+      <!-- Featured awards -->
+      <div id="featured-section" style="display:none">
+        <h2 class="section-heading">Featured Achievements</h2>
+        <div id="featured-grid" class="featured-grid"></div>
+      </div>
+
+      <!-- All awards by year -->
+      <div id="all-awards"></div>
+
+    </div>
+  </section>
+
+  <!-- Instagram / Follow CTA -->
+  <section class="follow-section">
+    <div class="container">
+      <div class="follow-card">
+        <div class="follow-icon">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+          </svg>
+        </div>
+        <div>
+          <h3>Follow Along</h3>
+          <p>See live competition updates, event photos, and chapter news on our Instagram</p>
+        </div>
+        <a href="https://www.instagram.com/irvingtonfbla" target="_blank" rel="noopener noreferrer" class="follow-btn">
+          @irvingtonfbla
+        </a>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<script>
+const API = '/.netlify/functions/dashboard';
+
+const PLACEMENT_MEDAL: Record<string, string> = {
+  '1st': '🥇', '2nd': '🥈', '3rd': '🥉',
+};
+function medalEmoji(p: string) {
+  for (const [key, emoji] of Object.entries(PLACEMENT_MEDAL)) {
+    if (p.toLowerCase().startsWith(key)) return emoji + ' ';
+  }
+  return '🏆 ';
+}
+function placementColor(p: string) {
+  if (p.toLowerCase().startsWith('1st')) return '#f59e0b';
+  if (p.toLowerCase().startsWith('2nd')) return '#6b7280';
+  if (p.toLowerCase().startsWith('3rd')) return '#b45309';
+  return '#1e3a8a';
+}
+
+async function loadAwards() {
+  try {
+    const r = await fetch(`${API}?resource=awards`);
+    const data = await r.json();
+    const awards = (data.items || []).sort((a: any, b: any) => {
+      if (a.featured && !b.featured) return -1;
+      if (!a.featured && b.featured) return 1;
+      return b.year - a.year;
+    });
+
+    document.getElementById('awards-loading')!.style.display = 'none';
+
+    if (awards.length === 0) {
+      document.getElementById('awards-empty')!.style.display = 'block';
+      return;
+    }
+
+    // Featured section
+    const featured = awards.filter((a: any) => a.featured);
+    if (featured.length > 0) {
+      const featEl = document.getElementById('featured-section')!;
+      featEl.style.display = '';
+      document.getElementById('featured-grid')!.innerHTML = featured.map((a: any) => awardCard(a, true)).join('');
+    }
+
+    // Group by year
+    const byYear: Record<number, any[]> = {};
+    awards.filter((a: any) => !a.featured).forEach((a: any) => {
+      if (!byYear[a.year]) byYear[a.year] = [];
+      byYear[a.year].push(a);
+    });
+
+    const allEl = document.getElementById('all-awards')!;
+    const years = Object.keys(byYear).map(Number).sort((a, b) => b - a);
+    allEl.innerHTML = years.map(year => `
+      <div class="year-section">
+        <h2 class="section-heading">${year} Season</h2>
+        <div class="awards-grid">${byYear[year].map((a: any) => awardCard(a, false)).join('')}</div>
+      </div>
+    `).join('');
+
+  } catch (err) {
+    document.getElementById('awards-loading')!.style.display = 'none';
+    document.getElementById('awards-empty')!.style.display = 'block';
+  }
+}
+
+function awardCard(a: any, featured: boolean) {
+  const color = placementColor(a.placement || '');
+  return `
+    <div class="award-card ${featured ? 'award-card--featured' : ''}">
+      ${a.photo ? `<div class="award-photo" style="background-image:url(${a.photo})"></div>` : ''}
+      <div class="award-card-body">
+        <div class="award-placement-badge" style="color:${color}">
+          ${medalEmoji(a.placement || '')}${a.placement}
+        </div>
+        <h3 class="award-event">${a.event}</h3>
+        <div class="award-tags">
+          ${a.category ? `<span class="award-tag">${a.category}</span>` : ''}
+          <span class="award-tag award-tag--year">${a.year}</span>
+        </div>
+        ${(a.members || []).length > 0 ? `
+          <div class="award-members">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            ${a.members.join(', ')}
+          </div>
+        ` : ''}
+      </div>
+    </div>
+  `;
+}
+
+loadAwards();
+</script>
+
+<style>
+  .awards-hero {
+    background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #3b82f6 100%);
+    padding: 8rem 2rem 4rem;
+    text-align: center;
+    color: white;
+  }
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 2rem; }
+  .badge {
+    display: inline-block; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
+    padding: 0.4rem 1.2rem; border-radius: 50px; font-size: 0.85rem; font-weight: 600;
+    letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 1.5rem;
+  }
+  .awards-hero h1 { font-size: 3rem; font-weight: 800; margin: 0 0 1rem; }
+  .awards-hero p { font-size: 1.2rem; opacity: 0.9; margin: 0; }
+
+  .awards-section { padding: 4rem 0; background: #f8fafc; min-height: 60vh; }
+
+  .loading-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4rem; gap: 1rem; color: #6b7280; }
+  .spinner { width: 32px; height: 32px; border: 3px solid #e5e7eb; border-top-color: #3b82f6; border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .empty-showcase { text-align: center; padding: 4rem 2rem; }
+  .empty-trophy { color: #d1d5db; margin-bottom: 1.5rem; }
+  .empty-showcase h2 { font-size: 1.8rem; color: #1e3a8a; margin: 0 0 0.75rem; }
+  .empty-showcase p { color: #6b7280; font-size: 1.1rem; margin: 0; }
+
+  .section-heading { font-size: 1.5rem; font-weight: 800; color: #0f172a; margin: 0 0 1.5rem; }
+  .year-section { margin-bottom: 3rem; }
+
+  .featured-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 3rem; }
+  .awards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.25rem; }
+
+  .award-card {
+    background: white; border: 1px solid #e5e7eb; border-radius: 16px;
+    overflow: hidden; transition: all 0.25s;
+  }
+  .award-card:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(0,0,0,0.1); border-color: #3b82f6; }
+  .award-card--featured { border-color: #f59e0b; box-shadow: 0 4px 16px rgba(245,158,11,0.15); }
+
+  .award-photo { height: 160px; background-size: cover; background-position: center; }
+  .award-card-body { padding: 1.5rem; }
+  .award-placement-badge { font-size: 1rem; font-weight: 800; margin-bottom: 0.5rem; }
+  .award-event { font-size: 1.1rem; font-weight: 700; color: #0f172a; margin: 0 0 0.75rem; }
+  .award-tags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.75rem; }
+  .award-tag { background: #eff6ff; color: #1d4ed8; font-size: 0.78rem; font-weight: 600; padding: 0.2rem 0.6rem; border-radius: 50px; }
+  .award-tag--year { background: #f1f5f9; color: #475569; }
+  .award-members { display: flex; align-items: center; gap: 0.4rem; font-size: 0.82rem; color: #6b7280; }
+
+  /* Follow section */
+  .follow-section { padding: 3rem 0; background: #1e3a8a; }
+  .follow-card { display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
+  .follow-icon { color: white; flex-shrink: 0; }
+  .follow-card h3 { font-size: 1.2rem; font-weight: 700; color: white; margin: 0 0 0.25rem; }
+  .follow-card p { color: rgba(255,255,255,0.75); margin: 0; font-size: 0.95rem; }
+  .follow-card > div { flex: 1; }
+  .follow-btn {
+    background: white; color: #1e3a8a; padding: 0.75rem 1.75rem; border-radius: 50px;
+    font-weight: 700; font-size: 0.95rem; text-decoration: none; white-space: nowrap;
+    transition: all 0.2s;
+  }
+  .follow-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
+
+  @media (max-width: 768px) {
+    .awards-hero { padding: 7rem 1.5rem 3rem; }
+    .awards-hero h1 { font-size: 2.2rem; }
+    .follow-card { flex-direction: column; text-align: center; }
+    .follow-icon { display: none; }
+  }
+</style>

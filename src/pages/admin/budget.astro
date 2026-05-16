@@ -1,0 +1,247 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+---
+
+<AdminLayout title="Budget" active="budget">
+  <div class="page-header">
+    <div>
+      <h1>Budget Dashboard</h1>
+      <p>Track chapter spending — synced with Google Sheets</p>
+    </div>
+    <div style="display:flex;gap:0.75rem;align-items:center">
+      <span class="sync-status" id="sync-status">
+        <span class="sync-dot demo"></span>Demo data
+      </span>
+      <button class="btn btn-secondary" id="setup-btn">Connect Google Sheets</button>
+    </div>
+  </div>
+
+  <div class="page-body">
+    <!-- Summary cards -->
+    <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin-bottom:2rem">
+      <div class="stat-card">
+        <div class="stat-label">Total Budget</div>
+        <div class="stat-value" id="stat-total">$0</div>
+        <div class="stat-sub">approved allocation</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Spent</div>
+        <div class="stat-value" id="stat-spent">$0</div>
+        <div class="stat-sub">across all categories</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Remaining</div>
+        <div class="stat-value green" id="stat-remaining">$0</div>
+        <div class="stat-sub" id="stat-pct">0% used</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Categories</div>
+        <div class="stat-value" id="stat-cats">0</div>
+        <div class="stat-sub">line items tracked</div>
+      </div>
+    </div>
+
+    <div class="budget-grid">
+      <!-- Chart -->
+      <div class="card chart-card">
+        <h2 class="card-title">Spending by Category</h2>
+        <canvas id="budget-chart" height="280"></canvas>
+      </div>
+
+      <!-- Category breakdown -->
+      <div class="card">
+        <h2 class="card-title">Category Breakdown</h2>
+        <div id="category-list"></div>
+      </div>
+    </div>
+
+    <!-- Google Sheets setup guide -->
+    <div class="setup-card card" id="setup-card" style="display:none">
+      <button class="setup-close" id="setup-close">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <h3>Connect Your Google Sheet</h3>
+      <p>Follow these steps to pull real budget data from your chapter's Google Sheet:</p>
+      <ol class="setup-steps">
+        <li>
+          <strong>Set up your Sheet</strong> — Create a sheet with columns: <code>Category</code>, <code>Budget</code>, <code>Spent</code>
+        </li>
+        <li>
+          <strong>Create an API key</strong> — Go to <a href="https://console.cloud.google.com" target="_blank">Google Cloud Console</a>, enable the Sheets API, and create an API key
+        </li>
+        <li>
+          <strong>Share your sheet</strong> — Make the sheet viewable by "Anyone with the link" (view only)
+        </li>
+        <li>
+          <strong>Add environment variables</strong> — In Netlify dashboard → Site settings → Environment variables, add:
+          <ul>
+            <li><code>GOOGLE_SHEETS_API_KEY</code> — your API key</li>
+            <li><code>BUDGET_SHEET_ID</code> — the Sheet ID from the URL</li>
+            <li><code>BUDGET_SHEET_RANGE</code> — e.g. <code>Sheet1!A1:C20</code></li>
+          </ul>
+        </li>
+        <li>
+          <strong>Redeploy</strong> — Trigger a new Netlify deploy. Live data will appear here within 5 minutes.
+        </li>
+      </ol>
+    </div>
+  </div>
+</AdminLayout>
+
+<!-- Load Chart.js from unpkg (already in CSP allowlist) -->
+<script src="https://unpkg.com/chart.js@4.4.9/dist/chart.umd.min.js"></script>
+
+<script>
+// Mock data — replace with Google Sheets API call once env vars are set
+const MOCK_CATEGORIES = [
+  { name: 'Flights', budget: 2000, spent: 1240 },
+  { name: 'Hotels', budget: 1500, spent: 830 },
+  { name: 'Registration Fees', budget: 800, spent: 520 },
+  { name: 'Transportation', budget: 400, spent: 310 },
+  { name: 'Food & Meals', budget: 300, spent: 165 },
+  { name: 'Overhead / Supplies', budget: 200, spent: 88 },
+  { name: 'Marketing', budget: 150, spent: 42 },
+  { name: 'Miscellaneous', budget: 100, spent: 15 },
+];
+
+async function loadBudget(): Promise<typeof MOCK_CATEGORIES> {
+  // If env vars are set, the Netlify function would fetch from Google Sheets.
+  // For now, return mock data.
+  try {
+    const r = await fetch('/.netlify/functions/sheets-budget');
+    if (r.ok) return r.json();
+  } catch { /* use mock */ }
+  return MOCK_CATEGORIES;
+}
+
+function fmt(n: number) { return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 0 }); }
+
+async function init() {
+  const cats = await loadBudget();
+  const total = cats.reduce((s, c) => s + c.budget, 0);
+  const spent = cats.reduce((s, c) => s + c.spent, 0);
+  const remaining = total - spent;
+  const pct = total > 0 ? Math.round((spent / total) * 100) : 0;
+
+  document.getElementById('stat-total')!.textContent = fmt(total);
+  document.getElementById('stat-spent')!.textContent = fmt(spent);
+  document.getElementById('stat-remaining')!.textContent = fmt(remaining);
+  document.getElementById('stat-pct')!.textContent = `${pct}% used`;
+  document.getElementById('stat-cats')!.textContent = String(cats.length);
+
+  // Chart.js bar chart
+  const ctx = (document.getElementById('budget-chart') as HTMLCanvasElement).getContext('2d')!;
+  new (window as any).Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: cats.map(c => c.name),
+      datasets: [
+        {
+          label: 'Budget',
+          data: cats.map(c => c.budget),
+          backgroundColor: 'rgba(30,58,138,0.15)',
+          borderColor: '#1e3a8a',
+          borderWidth: 1.5,
+          borderRadius: 6,
+        },
+        {
+          label: 'Spent',
+          data: cats.map(c => c.spent),
+          backgroundColor: (ctx2: any) => {
+            const cat = cats[ctx2.dataIndex];
+            return cat.spent / cat.budget > 0.9 ? 'rgba(220,38,38,0.75)' : 'rgba(59,130,246,0.75)';
+          },
+          borderColor: (ctx2: any) => {
+            const cat = cats[ctx2.dataIndex];
+            return cat.spent / cat.budget > 0.9 ? '#dc2626' : '#3b82f6';
+          },
+          borderWidth: 1.5,
+          borderRadius: 6,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top', labels: { font: { family: "'Plus Jakarta Sans', sans-serif", size: 12 }, boxWidth: 12, padding: 16 } },
+        tooltip: { callbacks: { label: (ctx2: any) => ` ${ctx2.dataset.label}: ${fmt(ctx2.raw)}` } },
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { family: "'Plus Jakarta Sans', sans-serif", size: 11 } } },
+        y: { grid: { color: '#f1f5f9' }, ticks: { font: { family: "'Plus Jakarta Sans', sans-serif", size: 11 }, callback: (v: any) => fmt(v) } },
+      },
+    },
+  });
+
+  // Category breakdown list
+  const listEl = document.getElementById('category-list')!;
+  listEl.innerHTML = cats.map(c => {
+    const pct = Math.round((c.spent / c.budget) * 100);
+    const isOver = pct >= 90;
+    return `
+      <div class="cat-row">
+        <div class="cat-info">
+          <span class="cat-name">${c.name}</span>
+          <span class="cat-amounts">${fmt(c.spent)} <span class="cat-of">of</span> ${fmt(c.budget)}</span>
+        </div>
+        <div class="progress-bar-track">
+          <div class="progress-bar-fill ${isOver ? 'danger' : ''}" style="width:${Math.min(pct,100)}%"></div>
+        </div>
+        <span class="cat-pct ${isOver ? 'danger' : ''}">${pct}%</span>
+      </div>
+    `;
+  }).join('');
+}
+
+document.getElementById('setup-btn')?.addEventListener('click', () => {
+  const card = document.getElementById('setup-card')!;
+  card.style.display = card.style.display === 'none' ? '' : 'none';
+  card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+});
+document.getElementById('setup-close')?.addEventListener('click', () => {
+  document.getElementById('setup-card')!.style.display = 'none';
+});
+
+init();
+</script>
+
+<style>
+.sync-status { display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; color: #64748b; }
+.sync-dot { width: 7px; height: 7px; border-radius: 50%; }
+.sync-dot.demo { background: #f59e0b; }
+.sync-dot.live { background: #22c55e; animation: pulse 2s infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+.green { color: #15803d !important; }
+.card-title { font-size: 1rem; font-weight: 700; color: #0f172a; margin: 0 0 1.25rem; }
+
+.budget-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 1.25rem; }
+@media (max-width: 900px) { .budget-grid { grid-template-columns: 1fr; } }
+
+.chart-card { position: relative; }
+#budget-chart { max-height: 280px; }
+
+.cat-row { display: flex; align-items: center; gap: 0.875rem; padding: 0.625rem 0; border-bottom: 1px solid #f1f5f9; }
+.cat-row:last-child { border-bottom: none; }
+.cat-info { min-width: 180px; }
+.cat-name { display: block; font-size: 0.875rem; font-weight: 600; color: #1e293b; }
+.cat-amounts { font-size: 0.75rem; color: #64748b; }
+.cat-of { color: #94a3b8; }
+.progress-bar-track { flex: 1; height: 6px; background: #f1f5f9; border-radius: 3px; overflow: hidden; }
+.progress-bar-fill { height: 100%; background: #3b82f6; border-radius: 3px; transition: width 0.5s; }
+.progress-bar-fill.danger { background: #dc2626; }
+.cat-pct { font-size: 0.75rem; font-weight: 700; color: #64748b; min-width: 36px; text-align: right; }
+.cat-pct.danger { color: #dc2626; }
+
+/* Setup guide */
+.setup-card { margin-top: 1.5rem; position: relative; border-left: 4px solid #3b82f6; }
+.setup-card h3 { font-size: 1rem; font-weight: 700; color: #1e3a8a; margin: 0 0 0.5rem; }
+.setup-card p { font-size: 0.875rem; color: #64748b; margin: 0 0 1rem; }
+.setup-steps { font-size: 0.875rem; color: #374151; line-height: 1.8; padding-left: 1.25rem; margin: 0; }
+.setup-steps li { margin-bottom: 0.75rem; }
+.setup-steps code { background: #f1f5f9; padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.82rem; font-family: 'Courier New', monospace; color: #1e3a8a; }
+.setup-steps a { color: #3b82f6; }
+.setup-close { position: absolute; top: 1rem; right: 1rem; background: none; border: none; cursor: pointer; color: #94a3b8; padding: 4px; border-radius: 6px; display: flex; align-items: center; }
+.setup-close:hover { color: #374151; background: #f1f5f9; }
+</style>

@@ -26,3 +26,6 @@ pnpm-debug.log*
 # Large image folders (keep local only)
 drive-download-*/
 officer team/
+
+# Local Netlify folder
+.netlify
