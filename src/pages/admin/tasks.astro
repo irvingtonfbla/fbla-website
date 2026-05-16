@@ -9,16 +9,6 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
       <p>Assign tasks, track deadlines, manage officer accountability</p>
     </div>
     <div style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap">
-      <div class="view-toggle">
-        <button class="view-btn active" id="btn-cards">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-          Cards
-        </button>
-        <button class="view-btn" id="btn-table">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="9" x2="9" y2="21"/></svg>
-          Table
-        </button>
-      </div>
       <select id="filter-officer" class="filter-select">
         <option value="">All Officers</option>
       </select>
@@ -37,54 +27,16 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   </div>
 
   <div class="page-body">
-
-    <!-- CARDS VIEW (default) -->
-    <div id="cards-view">
-      <!-- Dept tab bar -->
-      <div class="dept-tab-bar" id="dept-tab-bar">
-        <button class="dept-tab active" data-dept="">All</button>
-      </div>
-
-      <!-- Summary bar -->
-      <div class="summary-bar" id="summary-bar" style="display:none"></div>
-
-      <!-- Loading -->
-      <div id="card-loading" class="empty-state" style="padding:4rem">
-        <div class="loading-spinner" style="margin:0 auto 1rem"></div>
-        <p>Loading tasks…</p>
-      </div>
-
-      <!-- Card content -->
-      <div id="card-content"></div>
+    <div class="dept-tab-bar" id="dept-tab-bar">
+      <button class="dept-tab active" data-dept="">All</button>
     </div>
 
-    <!-- TABLE VIEW (secondary) -->
-    <div id="table-view" style="display:none">
-      <div class="card" style="padding:0;overflow:hidden">
-        <div id="task-empty" class="empty-state" style="display:none;padding:3rem">
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:0.3;margin-bottom:1rem"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-          <p>No tasks match your filters.</p>
-        </div>
-        <div class="table-scroll" id="table-wrap">
-          <table class="task-table" id="task-table">
-            <thead>
-              <tr>
-                <th class="th-status"></th>
-                <th>Deadline</th>
-                <th>Task</th>
-                <th>Description</th>
-                <th>Lead Officer</th>
-                <th>Other Officers</th>
-                <th>Dept</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="task-tbody"></tbody>
-          </table>
-        </div>
-      </div>
+    <div id="task-loading" class="empty-state" style="padding:4rem">
+      <div class="loading-spinner" style="margin:0 auto 1rem"></div>
+      <p>Loading tasks…</p>
     </div>
 
+    <div id="task-content" style="display:none"></div>
   </div>
 
   <!-- Add/Edit Modal -->
@@ -160,13 +112,10 @@ const h = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${
 let allTasks: any[] = [];
 let allStrikes: any[] = [];
 let editingId: string | null = null;
-let currentView = 'cards';
 let sheetTabs: string[] = [];
 let activeDept = '';
 
 const STATUS_LABEL: Record<string,string> = { 'not-started': 'Not Started', 'in-progress': 'In Progress', done: 'Done', missed: 'Missed' };
-const STATUS_DOT: Record<string,string>  = { 'not-started': '#94a3b8', 'in-progress': '#f59e0b', done: '#22c55e', missed: '#ef4444' };
-const ROW_BG: Record<string,string>  = { 'not-started': '#fff', 'in-progress': '#fffbeb', done: '#f0fdf4', missed: '#fef2f2' };
 
 function fmt(d: string) {
   if (!d) return '—';
@@ -195,205 +144,73 @@ function toast(msg: string, type = 'success') {
   setTimeout(() => el.classList.remove('show'), 3000);
 }
 
-// ── Card rendering ───────────────────────────────────────────────
-function buildCard(t: any): string {
+// ── Status icon ──────────────────────────────────────────────────
+function statusIcon(status: string): string {
+  if (status === 'done')
+    return `<svg width="20" height="20" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#22c55e"/><polyline points="8 12 11 15 16 9" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  if (status === 'missed')
+    return `<svg width="20" height="20" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#ef4444"/><line x1="9" y1="9" x2="15" y2="15" stroke="white" stroke-width="2.5" stroke-linecap="round"/><line x1="15" y1="9" x2="9" y2="15" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>`;
+  if (status === 'in-progress')
+    return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#f59e0b" stroke-width="2"/><path d="M12 7v5l3 3" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#cbd5e1" stroke-width="2"/></svg>`;
+}
+
+// ── Task row ─────────────────────────────────────────────────────
+function buildRow(t: any): string {
   const lead   = t.leadOfficer || t.assignedTo?.[0] || '';
   const others: string[] = t.otherOfficers?.length ? t.otherOfficers : (t.assignedTo?.slice(1) || []);
-  const od     = isOverdue(t.deadline, t.status);
-  const fromSheets = t.source === 'sheets';
+  const all    = [lead, ...others].filter(Boolean);
+  const sheet  = t.source === 'sheets';
   const dl     = t.deadline ? fmtLong(t.deadline) : '';
+  const od     = isOverdue(t.deadline, t.status);
 
-  const statusColors: Record<string,string> = {
-    'not-started': 'status-ns',
-    'in-progress': 'status-ip',
-    done: 'status-done',
-    missed: 'status-missed',
-  };
-  const cls = statusColors[t.status] || 'status-ns';
-
-  return `<div class="tcard ${cls}" data-id="${t.id}">
-    <div class="tcard-top">
-      <span class="tcard-status">
-        <span class="tcard-dot" style="background:${STATUS_DOT[t.status]||'#94a3b8'}"></span>
-        ${STATUS_LABEL[t.status] || 'Unknown'}
-      </span>
-      ${dl ? `<span class="tcard-dl${od ? ' od' : ''}">${od ? '⚠ ' : ''}${dl}</span>` : ''}
+  return `<div class="trow s-${t.status}" data-id="${t.id}">
+    <button class="trow-status${sheet ? ' ro' : ''}" data-id="${t.id}" data-status="${t.status}" title="${sheet ? STATUS_LABEL[t.status] : 'Toggle done'}">
+      ${statusIcon(t.status)}
+    </button>
+    <div class="trow-body">
+      <span class="trow-title">${t.title}</span>
+      ${t.description ? `<span class="trow-desc">${t.description}</span>` : ''}
     </div>
-
-    <div class="tcard-title">${t.title}</div>
-    ${t.description ? `<div class="tcard-desc">${t.description}</div>` : ''}
-
-    <div class="tcard-foot">
-      <div class="tcard-officers">
-        ${lead ? `<span class="o-chip">${lead}</span>` : ''}
-        ${others.slice(0,2).map((n: string) => `<span class="o-chip sec">${n}</span>`).join('')}
-        ${others.length > 2 ? `<span class="o-chip sec">+${others.length-2}</span>` : ''}
-      </div>
-      <div class="tcard-actions">
-        ${t.location === 'Online' ? `<span class="loc-badge online">Online</span>` : t.location ? `<span class="loc-badge inperson">In-person</span>` : ''}
-        ${fromSheets
-          ? `<span class="src-badge">Sheets</span>`
-          : `<button class="card-edit-btn" data-id="${t.id}" title="Edit">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-             </button>`
-        }
-      </div>
+    <div class="trow-meta">
+      ${all.length ? `<span class="trow-officers">${all.slice(0,2).join(', ')}${all.length > 2 ? ` +${all.length-2}` : ''}</span>` : ''}
+      ${dl ? `<span class="trow-dl${od ? ' od' : ''}">${dl}</span>` : ''}
+      ${sheet
+        ? `<span class="src-badge">Sheets</span>`
+        : `<button class="trow-edit" data-id="${t.id}" title="Edit">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+           </button>`
+      }
     </div>
   </div>`;
 }
 
-function buildGrid(tasks: any[]): string {
-  if (!tasks.length) return '<div class="card-empty">No tasks match the current filters.</div>';
-  const sorted = [...tasks].sort((a, b) => {
-    const pa = a.status === 'missed' ? 0 : a.status === 'in-progress' ? 1 : a.status === 'not-started' ? 2 : 3;
-    const pb = b.status === 'missed' ? 0 : b.status === 'in-progress' ? 1 : b.status === 'not-started' ? 2 : 3;
+function sortTasks(tasks: any[]): any[] {
+  const p: Record<string,number> = { missed: 0, 'in-progress': 1, 'not-started': 2, done: 3 };
+  return [...tasks].sort((a, b) => {
+    const pa = p[a.status] ?? 2, pb = p[b.status] ?? 2;
     if (pa !== pb) return pa - pb;
     if (a.deadline && b.deadline) return String(a.deadline).localeCompare(String(b.deadline));
     return a.deadline ? -1 : 1;
   });
-  return `<div class="card-grid">${sorted.map(buildCard).join('')}</div>`;
 }
 
-function deptStats(tasks: any[]) {
-  const done    = tasks.filter(t => t.status === 'done').length;
-  const missed  = tasks.filter(t => t.status === 'missed').length;
-  const inProg  = tasks.filter(t => t.status === 'in-progress').length;
-  const pct     = tasks.length ? Math.round((done / tasks.length) * 100) : 0;
-  return { done, missed, inProg, total: tasks.length, pct };
-}
-
-function buildSummaryBar(tasks: any[]): string {
-  const { done, missed, inProg, total, pct } = deptStats(tasks);
-  return `<div class="summary-bar-inner">
-    <div class="sb-stat"><span class="sb-n">${total}</span><span class="sb-l">Total</span></div>
-    <div class="sb-stat"><span class="sb-n green">${done}</span><span class="sb-l">Done</span></div>
-    <div class="sb-stat"><span class="sb-n amber">${inProg}</span><span class="sb-l">In Progress</span></div>
-    <div class="sb-stat"><span class="sb-n red">${missed}</span><span class="sb-l">Missed</span></div>
-    <div class="sb-progress">
-      <div class="sb-bar"><div class="sb-fill" style="width:${pct}%"></div></div>
-      <span class="sb-pct">${pct}% done</span>
+function buildDeptBlock(dept: string, tasks: any[]): string {
+  const done   = tasks.filter(t => t.status === 'done').length;
+  const missed = tasks.filter(t => t.status === 'missed').length;
+  const pct    = tasks.length ? Math.round(done / tasks.length * 100) : 0;
+  return `<div class="dept-block">
+    <div class="dept-hdr2">
+      <span class="dept-hdr2-name">${dept}</span>
+      <div class="dept-hdr2-bar"><div class="dept-hdr2-fill" style="width:${pct}%"></div></div>
+      <span class="dept-hdr2-count">${done}/${tasks.length}</span>
+      ${missed ? `<span class="dept-hdr2-missed">${missed} missed</span>` : ''}
     </div>
+    <div class="task-list">${sortTasks(tasks).map(buildRow).join('')}</div>
   </div>`;
 }
 
-function renderCards(tasks: any[]) {
-  document.getElementById('card-loading')!.style.display = 'none';
-  const content = document.getElementById('card-content')!;
-  const summaryEl = document.getElementById('summary-bar')!;
-
-  if (activeDept) {
-    // Single dept: flat grid with summary bar
-    summaryEl.style.display = '';
-    summaryEl.innerHTML = buildSummaryBar(tasks);
-    content.innerHTML = buildGrid(tasks);
-  } else {
-    // All depts: group by department
-    summaryEl.style.display = 'none';
-
-    const groups: Record<string, any[]> = {};
-    const noTab: any[] = [];
-    tasks.forEach(t => {
-      if (t.tab) { groups[t.tab] = groups[t.tab] || []; groups[t.tab].push(t); }
-      else { noTab.push(t); }
-    });
-
-    if (noTab.length) groups['General'] = noTab;
-
-    if (!Object.keys(groups).length) {
-      content.innerHTML = '<div class="card-empty">No tasks found.</div>';
-      return;
-    }
-
-    // Order sections by sheet tab order first, then General
-    const orderedKeys = [
-      ...sheetTabs.filter(t => groups[t]),
-      ...Object.keys(groups).filter(k => !sheetTabs.includes(k)),
-    ];
-
-    content.innerHTML = orderedKeys.map(dept => {
-      const dt = groups[dept];
-      const { done, missed, total, pct } = deptStats(dt);
-      return `<div class="dept-section">
-        <div class="dept-hdr">
-          <div class="dept-hdr-left">
-            <span class="dept-hdr-name">${dept}</span>
-            <div class="dept-hdr-pills">
-              <span class="dpill total">${total} tasks</span>
-              ${done ? `<span class="dpill green">${done} done</span>` : ''}
-              ${missed ? `<span class="dpill red">${missed} missed</span>` : ''}
-            </div>
-          </div>
-          <div class="dept-hdr-right">
-            <div class="dept-bar"><div class="dept-bar-fill" style="width:${pct}%"></div></div>
-            <span class="dept-pct">${pct}%</span>
-          </div>
-        </div>
-        ${buildGrid(dt)}
-      </div>`;
-    }).join('');
-  }
-
-  // Wire edit buttons
-  content.querySelectorAll('.card-edit-btn').forEach(btn => {
-    btn.addEventListener('click', () => openEdit((btn as HTMLElement).dataset.id!));
-  });
-}
-
-// ── Table rendering ──────────────────────────────────────────────
-function renderTableView(tasks: any[]) {
-  const empty = document.getElementById('task-empty')!;
-  const wrap  = document.getElementById('table-wrap')!;
-  const tbody = document.getElementById('task-tbody')!;
-
-  if (!tasks.length) { empty.style.display = 'block'; wrap.style.display = 'none'; return; }
-  empty.style.display = 'none'; wrap.style.display = '';
-
-  const sorted = [...tasks].sort((a, b) => {
-    if (a.deadline && b.deadline) return String(a.deadline).localeCompare(String(b.deadline));
-    return a.deadline ? -1 : 1;
-  });
-
-  const RC: Record<string,string> = { 'not-started': 'row-ns', 'in-progress': 'row-ip', done: 'row-done', missed: 'row-missed' };
-
-  tbody.innerHTML = sorted.map(t => {
-    const lead    = t.leadOfficer || t.assignedTo?.[0] || '';
-    const others: string[] = t.otherOfficers?.length ? t.otherOfficers : (t.assignedTo?.slice(1) || []);
-    const od      = isOverdue(t.deadline, t.status);
-    const from    = t.source === 'sheets';
-    return `<tr class="${RC[t.status]||'row-ns'}" data-id="${t.id}">
-      <td class="status-bar"></td>
-      <td class="deadline-col${od ? ' overdue' : ''}">${t.deadline ? fmtLong(t.deadline) : '—'}</td>
-      <td class="task-col"><span class="task-name">${t.title}</span></td>
-      <td class="desc-col">${t.description || '<span class="dim">—</span>'}</td>
-      <td class="officer-col">${lead ? `<span class="o-chip">${lead}</span>` : '<span class="dim">—</span>'}</td>
-      <td class="officer-col">${others.map((n: string) => `<span class="o-chip sec">${n}</span>`).join('') || '<span class="dim">—</span>'}</td>
-      <td class="dept-col">${t.tab ? `<span class="dept-tag">${t.tab}</span>` : '<span class="dim">—</span>'}</td>
-      <td class="actions-col">
-        ${from
-          ? `<span class="src-badge">Sheets</span>`
-          : `<select class="status-select" data-id="${t.id}">
-              ${['not-started','in-progress','done','missed'].map(s => `<option value="${s}"${s===t.status?' selected':''}>${STATUS_LABEL[s]}</option>`).join('')}
-            </select>
-            <button class="btn-icon edit-btn" data-id="${t.id}">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            </button>`}
-      </td>
-    </tr>`;
-  }).join('');
-
-  tbody.querySelectorAll('.status-select').forEach(sel => {
-    sel.addEventListener('change', async e => {
-      const el = e.target as HTMLSelectElement;
-      const task = allTasks.find(t => t.id === el.dataset.id);
-      if (task) await updateStatus(task, el.value);
-    });
-  });
-  tbody.querySelectorAll('.edit-btn').forEach(btn => {
-    btn.addEventListener('click', () => openEdit((btn as HTMLElement).dataset.id!));
-  });
-}
-
-// ── Filters + render ─────────────────────────────────────────────
+// ── Render ───────────────────────────────────────────────────────
 function getFiltered() {
   const statusF  = (document.getElementById('filter-status') as HTMLSelectElement).value;
   const officerF = (document.getElementById('filter-officer') as HTMLSelectElement).value;
@@ -409,17 +226,51 @@ function getFiltered() {
   });
 }
 
+function wireRows(container: Element) {
+  container.querySelectorAll('.trow-status:not(.ro)').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const el = btn as HTMLElement;
+      const task = allTasks.find(t => t.id === el.dataset.id);
+      if (!task) return;
+      await updateStatus(task, task.status === 'done' ? 'not-started' : 'done');
+    });
+  });
+  container.querySelectorAll('.trow-edit').forEach(btn => {
+    btn.addEventListener('click', () => openEdit((btn as HTMLElement).dataset.id!));
+  });
+}
+
 function render() {
-  const tasks = getFiltered();
-  if (currentView === 'cards') renderCards(tasks);
-  else renderTableView(tasks);
+  const tasks   = getFiltered();
+  const loading = document.getElementById('task-loading')!;
+  const content = document.getElementById('task-content')!;
+  loading.style.display = 'none';
+  content.style.display = '';
+
+  if (!tasks.length) {
+    content.innerHTML = `<div class="task-empty">No tasks match the current filters.</div>`;
+    return;
+  }
+
+  if (activeDept) {
+    content.innerHTML = `<div class="task-list">${sortTasks(tasks).map(buildRow).join('')}</div>`;
+  } else {
+    const groups: Record<string, any[]> = {};
+    tasks.forEach(t => { const k = t.tab || 'General'; (groups[k] = groups[k] || []).push(t); });
+    const keys = [
+      ...sheetTabs.filter(k => groups[k]),
+      ...Object.keys(groups).filter(k => !sheetTabs.includes(k)),
+    ];
+    content.innerHTML = keys.map(d => buildDeptBlock(d, groups[d])).join('');
+  }
+
+  wireRows(content);
 }
 
 // ── Dept tabs ────────────────────────────────────────────────────
 function buildDeptTabs() {
   const bar = document.getElementById('dept-tab-bar')!;
-  const tabs = ['', ...sheetTabs];
-  bar.innerHTML = tabs.map(t =>
+  bar.innerHTML = ['', ...sheetTabs].map(t =>
     `<button class="dept-tab${t === activeDept ? ' active' : ''}" data-dept="${t}">${t || 'All'}</button>`
   ).join('');
   bar.querySelectorAll('.dept-tab').forEach(btn => {
@@ -433,7 +284,7 @@ function buildDeptTabs() {
 
 // ── Officer filter ───────────────────────────────────────────────
 function populateOfficerFilter() {
-  const sel   = document.getElementById('filter-officer') as HTMLSelectElement;
+  const sel = document.getElementById('filter-officer') as HTMLSelectElement;
   const names = new Set<string>();
   allTasks.forEach(t => {
     const lead = t.leadOfficer || t.assignedTo?.[0];
@@ -442,11 +293,7 @@ function populateOfficerFilter() {
   });
   const existing = Array.from(sel.options).slice(1).map(o => o.value);
   names.forEach(n => {
-    if (!existing.includes(n)) {
-      const opt = document.createElement('option');
-      opt.value = n; opt.textContent = n;
-      sel.appendChild(opt);
-    }
+    if (!existing.includes(n)) { const o = document.createElement('option'); o.value = n; o.textContent = n; sel.appendChild(o); }
   });
 }
 
@@ -604,24 +451,6 @@ document.getElementById('delete-btn')!.addEventListener('click', async () => {
   await loadData(); closeModal(); toast('Task deleted');
 });
 
-// ── View toggle ──────────────────────────────────────────────────
-document.getElementById('btn-cards')!.addEventListener('click', () => {
-  currentView = 'cards';
-  document.getElementById('cards-view')!.style.display = '';
-  document.getElementById('table-view')!.style.display = 'none';
-  document.getElementById('btn-cards')!.classList.add('active');
-  document.getElementById('btn-table')!.classList.remove('active');
-  render();
-});
-document.getElementById('btn-table')!.addEventListener('click', () => {
-  currentView = 'table';
-  document.getElementById('cards-view')!.style.display = 'none';
-  document.getElementById('table-view')!.style.display = '';
-  document.getElementById('btn-table')!.classList.add('active');
-  document.getElementById('btn-cards')!.classList.remove('active');
-  render();
-});
-
 document.getElementById('filter-status')!.addEventListener('change', render);
 document.getElementById('filter-officer')!.addEventListener('change', render);
 
@@ -630,205 +459,127 @@ loadRosterAutocomplete();
 </script>
 
 <style is:global>
-/* ── Header controls ────────────────────────────────────── */
-.view-toggle { display: flex; border: 1.5px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
-.view-btn {
-  display: flex; align-items: center; gap: 0.4rem;
-  background: none; border: none; padding: 0.5rem 0.875rem;
-  font-size: 0.8rem; font-weight: 600; cursor: pointer;
-  color: #64748b; font-family: inherit; transition: all 0.15s;
-}
-.view-btn.active { background: #1e3a8a; color: white; }
+/* ── Filters ────────────────────────────────────────────── */
 .filter-select {
-  padding: 0.5rem 0.75rem; border: 1.5px solid #e2e8f0; border-radius: 8px;
-  font-size: 0.875rem; color: #374151; background: white; cursor: pointer;
-  max-width: 160px; font-family: inherit;
+  padding: 0.45rem 0.75rem; border: 1.5px solid #e2e8f0; border-radius: 8px;
+  font-size: 0.8rem; color: #374151; background: white; cursor: pointer;
+  font-family: inherit;
 }
 
-/* ── Dept tab bar ───────────────────────────────────────── */
-.dept-tab-bar {
-  display: flex; flex-wrap: wrap; gap: 0.5rem;
-  margin-bottom: 1.5rem;
-}
+/* ── Dept tabs ──────────────────────────────────────────── */
+.dept-tab-bar { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1.5rem; }
 .dept-tab {
-  padding: 0.375rem 1rem; border-radius: 20px;
+  padding: 0.3rem 0.875rem; border-radius: 20px;
   border: 1.5px solid #e2e8f0; background: white;
-  font-size: 0.8rem; font-weight: 600; color: #64748b;
-  cursor: pointer; font-family: inherit; transition: all 0.15s;
+  font-size: 0.78rem; font-weight: 600; color: #64748b;
+  cursor: pointer; font-family: inherit; transition: all 0.12s;
   white-space: nowrap;
 }
-.dept-tab:hover:not(.active) { border-color: #94a3b8; color: #374151; background: #f8fafc; }
-.dept-tab.active { background: #1e3a8a; color: white; border-color: #1e3a8a; }
+.dept-tab:hover:not(.active) { border-color: #94a3b8; color: #374151; }
+.dept-tab.active { background: #0f172a; color: white; border-color: #0f172a; }
 
-/* ── Summary bar ────────────────────────────────────────── */
-.summary-bar { margin-bottom: 1.5rem; }
-.summary-bar-inner {
-  display: flex; align-items: center; gap: 2rem;
+/* ── Dept section header ────────────────────────────────── */
+.dept-block { margin-bottom: 1.75rem; }
+.dept-hdr2 {
+  display: flex; align-items: center; gap: 0.6rem;
+  padding: 0 0.25rem 0.5rem; margin-bottom: 0;
+}
+.dept-hdr2-name {
+  font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.07em; color: #94a3b8; white-space: nowrap;
+}
+.dept-hdr2-bar {
+  flex: 1; max-width: 72px; height: 3px;
+  background: #e2e8f0; border-radius: 2px; overflow: hidden;
+}
+.dept-hdr2-fill { height: 100%; background: #22c55e; border-radius: 2px; }
+.dept-hdr2-count { font-size: 0.72rem; font-weight: 600; color: #94a3b8; white-space: nowrap; }
+.dept-hdr2-missed {
+  font-size: 0.68rem; font-weight: 700; color: #ef4444;
+  background: #fef2f2; padding: 0.1rem 0.45rem;
+  border-radius: 10px; border: 1px solid #fecaca;
+  white-space: nowrap;
+}
+
+/* ── Task list container ────────────────────────────────── */
+.task-list {
   background: white; border: 1px solid #e2e8f0;
-  border-radius: 12px; padding: 1rem 1.5rem;
-  flex-wrap: wrap; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-}
-.sb-stat { display: flex; flex-direction: column; align-items: center; gap: 0.1rem; min-width: 48px; }
-.sb-n { font-size: 1.5rem; font-weight: 800; color: #0f172a; line-height: 1; }
-.sb-n.green { color: #15803d; }
-.sb-n.amber { color: #d97706; }
-.sb-n.red   { color: #dc2626; }
-.sb-l { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; }
-.sb-progress { display: flex; align-items: center; gap: 0.75rem; flex: 1; min-width: 160px; }
-.sb-bar { flex: 1; height: 8px; background: #f1f5f9; border-radius: 4px; overflow: hidden; }
-.sb-fill { height: 100%; background: #22c55e; border-radius: 4px; transition: width 0.4s; }
-.sb-pct { font-size: 0.8rem; font-weight: 700; color: #15803d; white-space: nowrap; }
-
-/* ── Dept sections ──────────────────────────────────────── */
-.dept-section { margin-bottom: 2.5rem; }
-.dept-hdr {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;
-}
-.dept-hdr-left { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
-.dept-hdr-name { font-size: 1.1rem; font-weight: 800; color: #0f172a; }
-.dept-hdr-pills { display: flex; gap: 0.35rem; flex-wrap: wrap; }
-.dpill {
-  font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.55rem;
-  border-radius: 50px; border: 1px solid transparent;
-}
-.dpill.total  { background: #f8fafc; color: #64748b; border-color: #e2e8f0; }
-.dpill.green  { background: #f0fdf4; color: #15803d; border-color: #bbf7d0; }
-.dpill.red    { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
-.dept-hdr-right { display: flex; align-items: center; gap: 0.5rem; }
-.dept-bar { width: 100px; height: 6px; background: #f1f5f9; border-radius: 3px; overflow: hidden; }
-.dept-bar-fill { height: 100%; background: #22c55e; border-radius: 3px; transition: width 0.4s; }
-.dept-pct { font-size: 0.75rem; font-weight: 700; color: #64748b; min-width: 28px; }
-
-/* ── Card grid ──────────────────────────────────────────── */
-.card-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
-  gap: 0.875rem;
-}
-.card-empty {
-  text-align: center; padding: 3rem 2rem;
-  color: #94a3b8; font-size: 0.9rem;
-  background: white; border: 2px dashed #e2e8f0;
-  border-radius: 12px;
+  border-radius: 10px; overflow: hidden;
 }
 
-/* ── Task cards ─────────────────────────────────────────── */
-.tcard {
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  border-left: 4px solid #e2e8f0;
-  padding: 1rem 1.125rem;
-  display: flex; flex-direction: column; gap: 0.5rem;
-  transition: box-shadow 0.15s, transform 0.12s;
+/* ── Task row ───────────────────────────────────────────── */
+.trow {
+  display: flex; align-items: center; gap: 0.75rem;
+  padding: 0.55rem 0.875rem;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.1s;
 }
-.tcard:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.09); transform: translateY(-1px); }
-.tcard.status-done    { border-left-color: #22c55e; }
-.tcard.status-ip      { border-left-color: #f59e0b; }
-.tcard.status-missed  { border-left-color: #ef4444; }
-.tcard.status-ns      { border-left-color: #cbd5e1; }
+.trow:last-child { border-bottom: none; }
+.trow:hover { background: #fafafa; }
 
-.tcard-top {
-  display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+/* Status icon button */
+.trow-status {
+  background: none; border: none; cursor: pointer; padding: 0;
+  display: flex; align-items: center; flex-shrink: 0;
+  transition: transform 0.1s, opacity 0.1s;
+  opacity: 0.9;
 }
-.tcard-status {
-  display: flex; align-items: center; gap: 0.35rem;
-  font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 0.04em; color: #64748b;
-}
-.tcard-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-.tcard-dl {
-  font-size: 0.72rem; font-weight: 600; color: #94a3b8;
-  background: #f8fafc; padding: 0.1rem 0.5rem; border-radius: 50px;
-  border: 1px solid #e2e8f0; white-space: nowrap;
-}
-.tcard-dl.od { color: #dc2626; background: #fef2f2; border-color: #fecaca; }
+.trow-status:hover:not(.ro) { opacity: 1; transform: scale(1.15); }
+.trow-status.ro { cursor: default; }
 
-.tcard-title {
-  font-size: 0.9rem; font-weight: 700; color: #1e293b;
+/* Task body */
+.trow-body { flex: 1; min-width: 0; }
+.trow-title {
+  display: block; font-size: 0.875rem; font-weight: 500; color: #1e293b;
   line-height: 1.35;
 }
-.tcard-desc {
-  font-size: 0.78rem; color: #64748b; line-height: 1.55;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-  overflow: hidden;
+.trow-desc {
+  display: block; font-size: 0.775rem; color: #94a3b8; margin-top: 0.1rem;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 480px;
 }
 
-.tcard-foot {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 0.5rem; margin-top: 0.25rem;
-  padding-top: 0.625rem; border-top: 1px solid #f1f5f9;
-}
-.tcard-officers { display: flex; gap: 0.3rem; flex-wrap: wrap; flex: 1; min-width: 0; }
-.tcard-actions  { display: flex; align-items: center; gap: 0.35rem; flex-shrink: 0; }
+/* Status-based title styles */
+.trow.s-done .trow-title { text-decoration: line-through; color: #94a3b8; }
+.trow.s-missed .trow-title { color: #ef4444; }
 
-.card-edit-btn {
-  background: none; border: 1px solid #e2e8f0; border-radius: 6px;
-  padding: 0.3rem; cursor: pointer; color: #94a3b8;
-  display: inline-flex; align-items: center; transition: all 0.15s;
+/* Right side meta */
+.trow-meta {
+  display: flex; align-items: center; gap: 0.6rem;
+  flex-shrink: 0;
 }
-.card-edit-btn:hover { background: #f1f5f9; color: #374151; border-color: #94a3b8; }
-
-/* ── Chips & badges ─────────────────────────────────────── */
-.o-chip {
-  display: inline-block; background: #eff6ff; color: #1d4ed8;
-  font-size: 0.72rem; font-weight: 600; padding: 0.12rem 0.5rem;
-  border-radius: 50px; white-space: nowrap;
+.trow-officers {
+  font-size: 0.775rem; color: #64748b; white-space: nowrap;
 }
-.o-chip.sec { background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; }
-.loc-badge { font-size: 0.7rem; font-weight: 600; padding: 0.12rem 0.5rem; border-radius: 50px; white-space: nowrap; }
-.loc-badge.inperson { background: #f0fdf4; color: #15803d; }
-.loc-badge.online   { background: #faf5ff; color: #7c3aed; }
+.trow-dl {
+  font-size: 0.75rem; color: #94a3b8; white-space: nowrap;
+}
+.trow-dl.od { color: #ef4444; font-weight: 600; }
 .src-badge {
-  font-size: 0.68rem; font-weight: 700; padding: 0.12rem 0.5rem;
+  font-size: 0.67rem; font-weight: 700; padding: 0.1rem 0.45rem;
   border-radius: 50px; background: #f0fdf4; color: #15803d;
   border: 1px solid #bbf7d0; white-space: nowrap;
 }
-.dept-tag {
-  display: inline-block; background: #f0f9ff; color: #0369a1;
-  font-size: 0.72rem; font-weight: 700; padding: 0.12rem 0.5rem;
-  border-radius: 50px; border: 1px solid #bae6fd;
+
+/* Edit button — appears on row hover */
+.trow-edit {
+  background: none; border: 1px solid transparent; border-radius: 6px;
+  padding: 0.25rem; cursor: pointer; color: #94a3b8;
+  display: inline-flex; align-items: center; transition: all 0.12s;
+  opacity: 0;
+}
+.trow:hover .trow-edit { opacity: 1; border-color: #e2e8f0; }
+.trow-edit:hover { background: #f1f5f9; color: #374151; border-color: #94a3b8; }
+
+/* ── Empty state ────────────────────────────────────────── */
+.task-empty {
+  text-align: center; padding: 3rem 2rem;
+  color: #94a3b8; font-size: 0.875rem;
+  background: white; border: 1px solid #e2e8f0; border-radius: 10px;
 }
 
-/* ── Table view ─────────────────────────────────────────── */
-.table-scroll { overflow-x: auto; }
-.task-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; min-width: 700px; }
-.task-table thead tr { background: #f8fafc; border-bottom: 2px solid #e2e8f0; }
-.task-table th {
-  padding: 0.75rem 1rem; text-align: left;
-  font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 0.06em; color: #64748b; white-space: nowrap;
-}
-.th-status { width: 5px; padding: 0 !important; }
-.task-table tbody tr { border-bottom: 1px solid #f1f5f9; }
-.task-table tbody tr:hover { filter: brightness(0.97); }
-.task-table td { padding: 0.7rem 1rem; vertical-align: middle; }
-.row-ns   { background: #fff; } .row-ns   .status-bar { background: #e2e8f0; }
-.row-ip   { background: #fffbeb; } .row-ip   .status-bar { background: #f59e0b; }
-.row-done { background: #f0fdf4; } .row-done .status-bar { background: #22c55e; }
-.row-missed { background: #fef2f2; } .row-missed .status-bar { background: #ef4444; }
-.status-bar { padding: 0 !important; width: 5px !important; }
-.deadline-col { white-space: nowrap; color: #64748b; font-size: 0.82rem; }
-.deadline-col.overdue { color: #dc2626; font-weight: 700; }
-.task-name { font-weight: 700; color: #0f172a; }
-.desc-col { color: #64748b; font-size: 0.82rem; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.officer-col { white-space: nowrap; }
-.dept-col { white-space: nowrap; }
-.actions-col { white-space: nowrap; }
-.dim { color: #d1d5db; }
-.status-select {
-  padding: 0.25rem 0.4rem; border: 1px solid #e2e8f0; border-radius: 6px;
-  font-size: 0.75rem; font-family: inherit; color: #374151;
-  cursor: pointer; background: white;
-}
-.btn-icon { background: none; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.4rem; cursor: pointer; color: #64748b; display: inline-flex; align-items: center; transition: all 0.15s; }
-.btn-icon:hover { background: #f8fafc; border-color: #94a3b8; color: #374151; }
-
-@media (max-width: 900px) {
+@media (max-width: 700px) {
+  .trow-officers { display: none; }
+  .trow-desc { display: none; }
   .page-header { flex-direction: column; align-items: flex-start; gap: 1rem; }
-  .page-header > div:last-child { flex-wrap: wrap; }
-  .card-grid { grid-template-columns: 1fr; }
-  .summary-bar-inner { gap: 1rem; }
 }
 </style>
