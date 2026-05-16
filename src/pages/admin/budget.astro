@@ -10,13 +10,15 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     </div>
     <div style="display:flex;gap:0.75rem;align-items:center">
       <span class="sync-status" id="sync-status">
-        <span class="sync-dot demo"></span>Demo data
+        <span class="sync-dot demo"></span>Loading…
       </span>
-      <button class="btn btn-secondary" id="setup-btn">Connect Google Sheets</button>
     </div>
   </div>
 
   <div class="page-body">
+    <!-- Tab bar (shown only if multiple budget tabs exist) -->
+    <div id="tab-bar" class="tab-bar" style="display:none"></div>
+
     <!-- Summary cards -->
     <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin-bottom:2rem">
       <div class="stat-card">
@@ -55,36 +57,6 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
       </div>
     </div>
 
-    <!-- Google Sheets setup guide -->
-    <div class="setup-card card" id="setup-card" style="display:none">
-      <button class="setup-close" id="setup-close">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
-      <h3>Connect Your Google Sheet</h3>
-      <p>Follow these steps to pull real budget data from your chapter's Google Sheet:</p>
-      <ol class="setup-steps">
-        <li>
-          <strong>Set up your Sheet</strong> — Create a sheet with columns: <code>Category</code>, <code>Budget</code>, <code>Spent</code>
-        </li>
-        <li>
-          <strong>Create an API key</strong> — Go to <a href="https://console.cloud.google.com" target="_blank">Google Cloud Console</a>, enable the Sheets API, and create an API key
-        </li>
-        <li>
-          <strong>Share your sheet</strong> — Make the sheet viewable by "Anyone with the link" (view only)
-        </li>
-        <li>
-          <strong>Add environment variables</strong> — In Netlify dashboard → Site settings → Environment variables, add:
-          <ul>
-            <li><code>GOOGLE_SHEETS_API_KEY</code> — your API key</li>
-            <li><code>BUDGET_SHEET_ID</code> — the Sheet ID from the URL</li>
-            <li><code>BUDGET_SHEET_RANGE</code> — e.g. <code>Sheet1!A1:C20</code></li>
-          </ul>
-        </li>
-        <li>
-          <strong>Redeploy</strong> — Trigger a new Netlify deploy. Live data will appear here within 5 minutes.
-        </li>
-      </ol>
-    </div>
   </div>
 </AdminLayout>
 
@@ -92,52 +64,110 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
 <script src="https://unpkg.com/chart.js@4.4.9/dist/chart.umd.min.js"></script>
 
 <script>
-// Mock data — replace with Google Sheets API call once env vars are set
-const MOCK_CATEGORIES = [
-  { name: 'Flights', budget: 2000, spent: 1240 },
-  { name: 'Hotels', budget: 1500, spent: 830 },
-  { name: 'Registration Fees', budget: 800, spent: 520 },
-  { name: 'Transportation', budget: 400, spent: 310 },
-  { name: 'Food & Meals', budget: 300, spent: 165 },
-  { name: 'Overhead / Supplies', budget: 200, spent: 88 },
-  { name: 'Marketing', budget: 150, spent: 42 },
-  { name: 'Miscellaneous', budget: 100, spent: 15 },
-];
-
-async function loadBudget(): Promise<typeof MOCK_CATEGORIES> {
-  // If env vars are set, the Netlify function would fetch from Google Sheets.
-  // For now, return mock data.
-  try {
-    const r = await fetch('/.netlify/functions/sheets-budget');
-    if (r.ok) return r.json();
-  } catch { /* use mock */ }
-  return MOCK_CATEGORIES;
-}
+const pw = () => localStorage.getItem('fbla_admin_pw') || '';
+const h = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${pw()}` });
 
 function fmt(n: number) { return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 0 }); }
 
-async function init() {
-  const cats = await loadBudget();
-  const total = cats.reduce((s, c) => s + c.budget, 0);
-  const spent = cats.reduce((s, c) => s + c.spent, 0);
-  const remaining = total - spent;
-  const pct = total > 0 ? Math.round((spent / total) * 100) : 0;
+// Transform sheets-budget response into chart-friendly categories
+function sheetsToCategories(tabData: any): { name: string; budget: number; spent: number }[] {
+  if (!tabData) return [];
+  return (tabData.expenses || [])
+    .filter((e: any) => e.item)
+    .map((e: any) => ({ name: e.item, budget: e.estimated || 0, spent: e.actual || 0 }));
+}
 
-  document.getElementById('stat-total')!.textContent = fmt(total);
-  document.getElementById('stat-spent')!.textContent = fmt(spent);
-  document.getElementById('stat-remaining')!.textContent = fmt(remaining);
-  document.getElementById('stat-pct')!.textContent = `${pct}% used`;
+let budgetRaw: any = null;
+let activeTab = '';
+
+async function loadAndRender() {
+  const syncEl = document.getElementById('sync-status')!;
+  try {
+    const r = await fetch('/.netlify/functions/sheets-budget', { headers: h() });
+    if (r.ok) {
+      budgetRaw = await r.json();
+      const tabs = Object.keys(budgetRaw);
+      if (tabs.length) {
+        activeTab = tabs[0];
+        buildTabBar(tabs);
+        syncEl.innerHTML = '<span class="sync-dot live"></span>Live — Google Sheets';
+        renderTab(activeTab);
+        return;
+      }
+    }
+  } catch {}
+  // Fall back to mock
+  syncEl.innerHTML = '<span class="sync-dot demo"></span>Demo data';
+  renderMock();
+}
+
+function buildTabBar(tabs: string[]) {
+  if (tabs.length <= 1) return;
+  const bar = document.getElementById('tab-bar')!;
+  bar.style.display = 'flex';
+  bar.innerHTML = tabs.map(t =>
+    `<button class="tab-btn${t === activeTab ? ' active' : ''}" data-tab="${t}">${t}</button>`
+  ).join('');
+  bar.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      activeTab = (btn as HTMLElement).dataset.tab!;
+      bar.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+      renderTab(activeTab);
+    });
+  });
+}
+
+function renderTab(tab: string) {
+  const data = budgetRaw[tab];
+  if (!data) return;
+
+  const totalRev = data.totalRevenue?.actual || data.revenue?.reduce((s: number, r: any) => s + (r.actual || 0), 0) || 0;
+  const totalExp = data.totalExpenses?.actual || data.expenses?.reduce((s: number, e: any) => s + (e.actual || 0), 0) || 0;
+  const balance = data.currentBalance?.actual ?? (totalRev - totalExp);
+
+  document.getElementById('stat-total')!.textContent = fmt(totalRev);
+  document.getElementById('stat-spent')!.textContent = fmt(totalExp);
+  document.getElementById('stat-remaining')!.textContent = fmt(balance);
+  const pct = totalRev > 0 ? Math.round((totalExp / totalRev) * 100) : 0;
+  document.getElementById('stat-pct')!.textContent = `${pct}% of revenue spent`;
+  const cats = sheetsToCategories(data);
   document.getElementById('stat-cats')!.textContent = String(cats.length);
 
-  // Chart.js bar chart
-  const ctx = (document.getElementById('budget-chart') as HTMLCanvasElement).getContext('2d')!;
-  new (window as any).Chart(ctx, {
+  renderChart(cats);
+  renderList(cats);
+}
+
+function renderMock() {
+  const cats = [
+    { name: 'Flights', budget: 6000, spent: 0 },
+    { name: 'Rooms', budget: 5437, spent: 8448 },
+    { name: 'Conference Registration', budget: 1560, spent: 5110 },
+    { name: 'Theme Park', budget: 550, spent: 550 },
+    { name: 'Food + misc', budget: 200, spent: 0 },
+  ];
+  document.getElementById('stat-total')!.textContent = fmt(21250);
+  document.getElementById('stat-spent')!.textContent = fmt(14108);
+  document.getElementById('stat-remaining')!.textContent = fmt(10542);
+  document.getElementById('stat-pct')!.textContent = 'Demo data';
+  document.getElementById('stat-cats')!.textContent = String(cats.length);
+  renderChart(cats);
+  renderList(cats);
+}
+
+let chartInstance: any = null;
+
+function renderChart(cats: { name: string; budget: number; spent: number }[]) {
+  const canvas = document.getElementById('budget-chart') as HTMLCanvasElement;
+  if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+  if (!cats.length) return;
+  const ctx = canvas.getContext('2d')!;
+  chartInstance = new (window as any).Chart(ctx, {
     type: 'bar',
     data: {
       labels: cats.map(c => c.name),
       datasets: [
         {
-          label: 'Budget',
+          label: 'Estimated',
           data: cats.map(c => c.budget),
           backgroundColor: 'rgba(30,58,138,0.15)',
           borderColor: '#1e3a8a',
@@ -145,15 +175,15 @@ async function init() {
           borderRadius: 6,
         },
         {
-          label: 'Spent',
+          label: 'Actual',
           data: cats.map(c => c.spent),
           backgroundColor: (ctx2: any) => {
             const cat = cats[ctx2.dataIndex];
-            return cat.spent / cat.budget > 0.9 ? 'rgba(220,38,38,0.75)' : 'rgba(59,130,246,0.75)';
+            return cat.budget > 0 && cat.spent / cat.budget > 1.1 ? 'rgba(220,38,38,0.75)' : 'rgba(59,130,246,0.75)';
           },
           borderColor: (ctx2: any) => {
             const cat = cats[ctx2.dataIndex];
-            return cat.spent / cat.budget > 0.9 ? '#dc2626' : '#3b82f6';
+            return cat.budget > 0 && cat.spent / cat.budget > 1.1 ? '#dc2626' : '#3b82f6';
           },
           borderWidth: 1.5,
           borderRadius: 6,
@@ -173,17 +203,19 @@ async function init() {
       },
     },
   });
+}
 
-  // Category breakdown list
+function renderList(cats: { name: string; budget: number; spent: number }[]) {
   const listEl = document.getElementById('category-list')!;
+  if (!cats.length) { listEl.innerHTML = '<p style="color:#94a3b8;text-align:center;padding:1rem">No expense items found</p>'; return; }
   listEl.innerHTML = cats.map(c => {
-    const pct = Math.round((c.spent / c.budget) * 100);
-    const isOver = pct >= 90;
+    const pct = c.budget > 0 ? Math.round((c.spent / c.budget) * 100) : 0;
+    const isOver = c.budget > 0 && c.spent > c.budget * 1.05;
     return `
       <div class="cat-row">
         <div class="cat-info">
           <span class="cat-name">${c.name}</span>
-          <span class="cat-amounts">${fmt(c.spent)} <span class="cat-of">of</span> ${fmt(c.budget)}</span>
+          <span class="cat-amounts">${fmt(c.spent)} <span class="cat-of">actual /</span> ${fmt(c.budget)} est.</span>
         </div>
         <div class="progress-bar-track">
           <div class="progress-bar-fill ${isOver ? 'danger' : ''}" style="width:${Math.min(pct,100)}%"></div>
@@ -194,19 +226,22 @@ async function init() {
   }).join('');
 }
 
-document.getElementById('setup-btn')?.addEventListener('click', () => {
-  const card = document.getElementById('setup-card')!;
-  card.style.display = card.style.display === 'none' ? '' : 'none';
-  card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-});
-document.getElementById('setup-close')?.addEventListener('click', () => {
-  document.getElementById('setup-card')!.style.display = 'none';
-});
+async function init() {
+  await loadAndRender();
+}
 
 init();
 </script>
 
 <style>
+.tab-bar { gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+.tab-btn {
+  padding: 0.4rem 1rem; border: 1.5px solid #e2e8f0; border-radius: 8px;
+  background: white; font-size: 0.82rem; font-weight: 600; color: #475569;
+  cursor: pointer; font-family: inherit; transition: all 0.15s;
+}
+.tab-btn.active { background: #1e3a8a; color: white; border-color: #1e3a8a; }
+
 .sync-status { display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; color: #64748b; }
 .sync-dot { width: 7px; height: 7px; border-radius: 50%; }
 .sync-dot.demo { background: #f59e0b; }
@@ -234,14 +269,4 @@ init();
 .cat-pct { font-size: 0.75rem; font-weight: 700; color: #64748b; min-width: 36px; text-align: right; }
 .cat-pct.danger { color: #dc2626; }
 
-/* Setup guide */
-.setup-card { margin-top: 1.5rem; position: relative; border-left: 4px solid #3b82f6; }
-.setup-card h3 { font-size: 1rem; font-weight: 700; color: #1e3a8a; margin: 0 0 0.5rem; }
-.setup-card p { font-size: 0.875rem; color: #64748b; margin: 0 0 1rem; }
-.setup-steps { font-size: 0.875rem; color: #374151; line-height: 1.8; padding-left: 1.25rem; margin: 0; }
-.setup-steps li { margin-bottom: 0.75rem; }
-.setup-steps code { background: #f1f5f9; padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.82rem; font-family: 'Courier New', monospace; color: #1e3a8a; }
-.setup-steps a { color: #3b82f6; }
-.setup-close { position: absolute; top: 1rem; right: 1rem; background: none; border: none; cursor: pointer; color: #94a3b8; padding: 4px; border-radius: 6px; display: flex; align-items: center; }
-.setup-close:hover { color: #374151; background: #f1f5f9; }
 </style>

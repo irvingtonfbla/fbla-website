@@ -29,6 +29,9 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
         <option value="done">Done</option>
         <option value="missed">Missed</option>
       </select>
+      <select id="filter-dept" class="filter-select">
+        <option value="">All Depts</option>
+      </select>
       <button class="btn btn-primary" id="add-task-btn">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Add Task
@@ -168,6 +171,7 @@ let allTasks: any[] = [];
 let allStrikes: any[] = [];
 let editingId: string | null = null;
 let currentView = 'table';
+let sheetTabs: string[] = [];
 
 const STATUS_LABEL: Record<string,string> = { 'not-started': 'Not Started', 'in-progress': 'In Progress', done: 'Done', missed: 'Missed' };
 const STATUS_COLOR: Record<string,string> = { 'not-started': '#94a3b8', 'in-progress': '#f59e0b', done: '#22c55e', missed: '#ef4444' };
@@ -175,11 +179,19 @@ const ROW_CLASS: Record<string,string> = { 'not-started': 'row-ns', 'in-progress
 
 function fmt(d: string) {
   if (!d) return '—';
+  if (/^\d{1,2}\/\d{1,2}(\/\d{2,4})?$/.test(d)) return d.split('/').slice(0,2).join('/');
   const dt = new Date(d + 'T12:00:00');
+  if (isNaN(dt.getTime())) return d;
   return `${dt.getMonth()+1}/${dt.getDate()}`;
 }
 function fmtLong(d: string) {
-  return new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  if (/^\d{1,2}\/\d{1,2}(\/\d{2,4})?$/.test(d)) {
+    const [m, day] = d.split('/');
+    return new Date(new Date().getFullYear(), +m - 1, +day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+  const dt = new Date(d + 'T12:00:00');
+  if (isNaN(dt.getTime())) return d;
+  return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 function isOverdue(deadline: string, status: string) {
   if (!deadline || status === 'done' || status === 'missed') return false;
@@ -225,23 +237,28 @@ function renderTableView(tasks: any[]) {
       : (t.assignedTo?.slice(1) || []);
     const od = isOverdue(t.deadline, t.status);
     const rc = ROW_CLASS[t.status] || 'row-ns';
+    const fromSheets = t.source === 'sheets';
+    const deptBadge = fromSheets && t.tab ? `<span class="dept-badge">${t.tab}</span>` : '';
 
     return `<tr class="${rc}" data-id="${t.id}">
       <td class="status-bar"></td>
       <td class="date-col">${t.dateAdded ? fmt(t.dateAdded) : '—'}</td>
       <td class="deadline-col${od ? ' overdue' : ''}">${t.deadline ? fmtLong(t.deadline) : '—'}</td>
-      <td class="task-col"><span class="task-name">${t.title}</span></td>
+      <td class="task-col"><span class="task-name">${t.title}</span>${deptBadge}</td>
       <td class="desc-col">${t.description || '<span class="dim">—</span>'}</td>
       <td class="officer-col">${lead ? `<span class="o-chip">${lead}</span>` : '<span class="dim">—</span>'}</td>
       <td class="officer-col">${officerChips(others, true)}</td>
       <td class="loc-col">${t.location ? `<span class="loc-badge ${t.location === 'Online' ? 'online' : 'inperson'}">${t.location}</span>` : '<span class="dim">—</span>'}</td>
       <td class="actions-col">
-        <select class="status-select" data-id="${t.id}" title="Change status">
-          ${['not-started','in-progress','done','missed'].map(s => `<option value="${s}"${s===t.status?' selected':''}>${STATUS_LABEL[s]}</option>`).join('')}
-        </select>
-        <button class="btn-icon edit-btn" data-id="${t.id}" title="Edit">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-        </button>
+        ${fromSheets
+          ? `<span class="sheets-badge" title="Synced from Google Sheets — edit in the spreadsheet">Sheets</span>`
+          : `<select class="status-select" data-id="${t.id}" title="Change status">
+              ${['not-started','in-progress','done','missed'].map(s => `<option value="${s}"${s===t.status?' selected':''}>${STATUS_LABEL[s]}</option>`).join('')}
+            </select>
+            <button class="btn-icon edit-btn" data-id="${t.id}" title="Edit">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>`
+        }
       </td>
     </tr>`;
   }).join('');
@@ -298,8 +315,10 @@ function renderBoardView(tasks: any[]) {
 function getFiltered() {
   const statusF = (document.getElementById('filter-status') as HTMLSelectElement).value;
   const officerF = (document.getElementById('filter-officer') as HTMLSelectElement).value;
+  const deptF = (document.getElementById('filter-dept') as HTMLSelectElement).value;
   return allTasks.filter(t => {
     if (statusF && t.status !== statusF) return false;
+    if (deptF && t.tab !== deptF) return false;
     if (officerF) {
       const lead = t.leadOfficer || t.assignedTo?.[0] || '';
       const others: string[] = t.otherOfficers || t.assignedTo?.slice(1) || [];
@@ -332,6 +351,18 @@ function populateOfficerFilter() {
       sel.appendChild(opt);
     }
   });
+}
+
+function populateDeptFilter() {
+  const sel = document.getElementById('filter-dept') as HTMLSelectElement;
+  const current = sel.value;
+  sel.innerHTML = '<option value="">All Depts</option>';
+  sheetTabs.forEach(tab => {
+    const opt = document.createElement('option');
+    opt.value = tab; opt.textContent = tab;
+    sel.appendChild(opt);
+  });
+  if (current) sel.value = current;
 }
 
 // ── Status update + strikes ──────────────────────────────────────
@@ -376,12 +407,28 @@ async function recordStrike(name: string, task: any) {
 
 // ── Load data ────────────────────────────────────────────────────
 async function loadData() {
-  const [tr, sr] = await Promise.all([
+  const [tr, sr, sheetRes] = await Promise.all([
     fetch(`${API}?resource=tasks`, { headers: h() }),
     fetch(`${API}?resource=strikes`, { headers: h() }),
+    fetch('/.netlify/functions/sheets-tasks', { headers: h() }).catch(() => null),
   ]);
-  allTasks = (await tr.json()).items || [];
+  const blobTasks = (await tr.json()).items || [];
   allStrikes = (await sr.json()).items || [];
+
+  let sheetData: any = null;
+  try { if (sheetRes?.ok) sheetData = await sheetRes.json(); } catch {}
+
+  if (sheetData?.tasks?.length) {
+    sheetTabs = sheetData.tabs || [];
+    // Merge: sheets tasks first, then manual tasks (deduped by title+deadline)
+    const blobIds = new Set(blobTasks.map((t: any) => t.id));
+    allTasks = [...sheetData.tasks, ...blobTasks.filter((t: any) => !blobIds.has(t.id))];
+    populateDeptFilter();
+  } else {
+    sheetTabs = [];
+    allTasks = blobTasks;
+  }
+
   populateOfficerFilter();
   render();
 }
@@ -505,6 +552,7 @@ document.getElementById('btn-board')!.addEventListener('click', () => {
 
 document.getElementById('filter-status')!.addEventListener('change', render);
 document.getElementById('filter-officer')!.addEventListener('change', render);
+document.getElementById('filter-dept')!.addEventListener('change', render);
 
 loadData();
 loadRosterAutocomplete();
@@ -576,6 +624,19 @@ loadRosterAutocomplete();
 .loc-badge { font-size: 0.75rem; font-weight: 600; padding: 0.15rem 0.55rem; border-radius: 50px; }
 .loc-badge.inperson { background: #f0fdf4; color: #15803d; }
 .loc-badge.online { background: #faf5ff; color: #7c3aed; }
+
+/* Department + sheets source badges */
+.dept-badge {
+  display: inline-block; margin-left: 0.4rem;
+  background: #f0f9ff; color: #0369a1;
+  font-size: 0.68rem; font-weight: 700; padding: 0.1rem 0.45rem;
+  border-radius: 50px; vertical-align: middle; border: 1px solid #bae6fd;
+}
+.sheets-badge {
+  display: inline-block; background: #f0fdf4; color: #15803d;
+  font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.5rem;
+  border-radius: 50px; border: 1px solid #bbf7d0; white-space: nowrap;
+}
 
 /* Inline status select */
 .status-select {
