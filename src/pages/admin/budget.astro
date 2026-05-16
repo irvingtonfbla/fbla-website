@@ -6,58 +6,160 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   <div class="page-header">
     <div>
       <h1>Budget Dashboard</h1>
-      <p>Track chapter spending — synced with Google Sheets</p>
+      <p>Full financial overview — synced with Google Sheets</p>
     </div>
     <div style="display:flex;gap:0.75rem;align-items:center">
-      <span class="sync-status" id="sync-status">
-        <span class="sync-dot demo"></span>Loading…
-      </span>
+      <span class="sync-status" id="sync-status"><span class="sync-dot demo"></span>Loading…</span>
+      <button class="btn btn-secondary btn-sm" id="export-csv-btn">Export CSV</button>
+      <button class="btn btn-primary btn-sm" id="add-slc-btn">+ SLC Trip</button>
     </div>
   </div>
 
   <div class="page-body">
-    <!-- Tab bar (shown only if multiple budget tabs exist) -->
+    <!-- Tab bar (multi-tab budgets) -->
     <div id="tab-bar" class="tab-bar" style="display:none"></div>
 
-    <!-- Summary cards -->
-    <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin-bottom:2rem">
+    <!-- Summary stats -->
+    <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin-bottom:2rem">
       <div class="stat-card">
-        <div class="stat-label">Total Budget</div>
-        <div class="stat-value" id="stat-total">$0</div>
-        <div class="stat-sub">approved allocation</div>
+        <div class="stat-label">Total Revenue</div>
+        <div class="stat-value green" id="stat-revenue">$0</div>
+        <div class="stat-sub">actual collected</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Total Spent</div>
-        <div class="stat-value" id="stat-spent">$0</div>
-        <div class="stat-sub">across all categories</div>
+        <div class="stat-label">Total Expenses</div>
+        <div class="stat-value" id="stat-expenses">$0</div>
+        <div class="stat-sub" id="stat-exp-est">est. $0</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Remaining</div>
-        <div class="stat-value green" id="stat-remaining">$0</div>
-        <div class="stat-sub" id="stat-pct">0% used</div>
+        <div class="stat-label">Current Balance</div>
+        <div class="stat-value" id="stat-balance">$0</div>
+        <div class="stat-sub" id="stat-bal-est">est. $0</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Categories</div>
-        <div class="stat-value" id="stat-cats">0</div>
-        <div class="stat-sub">line items tracked</div>
+        <div class="stat-label">Line Items</div>
+        <div class="stat-value" id="stat-items">0</div>
+        <div class="stat-sub">expense entries</div>
       </div>
     </div>
 
-    <div class="budget-grid">
-      <!-- Chart -->
+    <!-- Charts row -->
+    <div class="charts-row">
       <div class="card chart-card">
-        <h2 class="card-title">Spending by Category</h2>
-        <canvas id="budget-chart" height="280"></canvas>
+        <h2 class="section-title">Estimated vs Actual by Item</h2>
+        <canvas id="budget-chart" height="260"></canvas>
       </div>
-
-      <!-- Category breakdown -->
-      <div class="card">
-        <h2 class="card-title">Category Breakdown</h2>
-        <div id="category-list"></div>
+      <div class="card chart-card-sm">
+        <h2 class="section-title">Expense Breakdown</h2>
+        <canvas id="donut-chart" height="220"></canvas>
+        <div id="donut-legend" class="donut-legend"></div>
       </div>
     </div>
 
+    <!-- Revenue section -->
+    <div class="card section-card" id="revenue-section" style="display:none">
+      <h2 class="section-title">Revenue</h2>
+      <div class="data-table-wrap">
+        <table class="data-table" id="revenue-table">
+          <thead><tr><th>Date</th><th>Item</th><th>Estimated</th><th>Actual</th><th>Submitted By</th></tr></thead>
+          <tbody id="revenue-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Expense detail table -->
+    <div class="card section-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem">
+        <h2 class="section-title" style="margin:0">Expense Detail</h2>
+        <input class="filter-input" id="expense-search" placeholder="Search items…" />
+      </div>
+      <div class="data-table-wrap">
+        <table class="data-table" id="expense-table">
+          <thead>
+            <tr>
+              <th>Date</th><th>Item</th><th>Price</th><th>Count</th>
+              <th>Estimated</th><th>Actual</th><th>Submitted By</th><th>Notes</th>
+            </tr>
+          </thead>
+          <tbody id="expense-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SLC Trips section -->
+    <div class="card section-card" id="slc-section">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem">
+        <h2 class="section-title" style="margin:0">SLC Trips</h2>
+      </div>
+      <div id="slc-grid" class="slc-grid">
+        <div class="empty-state" style="padding:2rem">
+          <p>No SLC trips recorded yet. Click "+ SLC Trip" to add one.</p>
+        </div>
+      </div>
+    </div>
   </div>
+
+  <!-- SLC Trip Modal -->
+  <div class="modal-overlay" id="slc-modal">
+    <div class="modal" style="max-width:600px">
+      <div class="modal-header">
+        <h2 id="slc-modal-title">Add SLC Trip</h2>
+        <button class="modal-close" id="slc-modal-close">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="slc-id" />
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+          <div class="form-group">
+            <label class="form-label">Year *</label>
+            <input type="text" id="slc-year" class="form-control" placeholder="2025" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Destination</label>
+            <input type="text" id="slc-dest" class="form-control" placeholder="Atlanta, GA" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Flight Details</label>
+          <textarea id="slc-flight" class="form-control" rows="2" placeholder="e.g. United — SFO → ATL, $750/person × 8 people, depart Mar 4"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Hotel Details</label>
+          <textarea id="slc-hotel" class="form-control" rows="2" placeholder="e.g. Marriott Marquis, 4 rooms × 3 nights, $679/room/night"></textarea>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+          <div class="form-group">
+            <label class="form-label">Total Cost (Actual)</label>
+            <input type="number" id="slc-cost" class="form-control" placeholder="14108" />
+          </div>
+          <div class="form-group">
+            <label class="form-label"># Attendees</label>
+            <input type="number" id="slc-count" class="form-control" placeholder="10" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Attendees (names)</label>
+          <input type="text" id="slc-attendees" class="form-control" placeholder="Name1, Name2, Name3…" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Google Drive Link (receipts / photos)</label>
+          <input type="url" id="slc-drive" class="form-control" placeholder="https://drive.google.com/…" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Notes</label>
+          <textarea id="slc-notes" class="form-control" rows="2" placeholder="Any additional details…"></textarea>
+        </div>
+        <div style="display:flex;gap:0.75rem;justify-content:flex-end;align-items:center;margin-top:0.5rem">
+          <button class="btn btn-danger btn-sm" id="slc-delete-btn" style="display:none;margin-right:auto">Delete</button>
+          <button class="btn btn-secondary" id="slc-cancel-btn">Cancel</button>
+          <button class="btn btn-primary" id="slc-save-btn">Save Trip</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
 </AdminLayout>
 
 <!-- Load Chart.js from unpkg (already in CSP allowlist) -->
@@ -66,21 +168,25 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
 <script>
 const pw = () => localStorage.getItem('fbla_admin_pw') || '';
 const h = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${pw()}` });
+const API = '/.netlify/functions/dashboard';
 
-function fmt(n: number) { return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 0 }); }
+function fmt(n: number) { return '$' + (n || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }); }
+function fmtCell(v: any) { return v != null && v !== '' ? String(v) : '—'; }
 
-// Transform sheets-budget response into chart-friendly categories
-function sheetsToCategories(tabData: any): { name: string; budget: number; spent: number }[] {
-  if (!tabData) return [];
-  return (tabData.expenses || [])
-    .filter((e: any) => e.item)
-    .map((e: any) => ({ name: e.item, budget: e.estimated || 0, spent: e.actual || 0 }));
+function toast(msg: string, type = 'success') {
+  const el = document.getElementById('toast')!;
+  el.textContent = msg; el.className = `toast ${type} show`;
+  setTimeout(() => el.classList.remove('show'), 3000);
 }
 
+// ── Google Sheets data ─────────────────────────────────────────────
 let budgetRaw: any = null;
 let activeTab = '';
+let allExpenses: any[] = [];
+let chartBar: any = null;
+let chartDonut: any = null;
 
-async function loadAndRender() {
+async function loadSheets() {
   const syncEl = document.getElementById('sync-status')!;
   try {
     const r = await fetch('/.netlify/functions/sheets-budget', { headers: h() });
@@ -96,9 +202,8 @@ async function loadAndRender() {
       }
     }
   } catch {}
-  // Fall back to mock
   syncEl.innerHTML = '<span class="sync-dot demo"></span>Demo data';
-  renderMock();
+  renderMockData();
 }
 
 function buildTabBar(tabs: string[]) {
@@ -118,155 +223,348 @@ function buildTabBar(tabs: string[]) {
 }
 
 function renderTab(tab: string) {
-  const data = budgetRaw[tab];
+  const data = budgetRaw?.[tab];
   if (!data) return;
 
   const totalRev = data.totalRevenue?.actual || data.revenue?.reduce((s: number, r: any) => s + (r.actual || 0), 0) || 0;
+  const totalRevEst = data.totalRevenue?.estimated || 0;
   const totalExp = data.totalExpenses?.actual || data.expenses?.reduce((s: number, e: any) => s + (e.actual || 0), 0) || 0;
+  const totalExpEst = data.totalExpenses?.estimated || 0;
   const balance = data.currentBalance?.actual ?? (totalRev - totalExp);
+  const balEst = data.currentBalance?.estimated ?? (totalRevEst - totalExpEst);
 
-  document.getElementById('stat-total')!.textContent = fmt(totalRev);
-  document.getElementById('stat-spent')!.textContent = fmt(totalExp);
-  document.getElementById('stat-remaining')!.textContent = fmt(balance);
-  const pct = totalRev > 0 ? Math.round((totalExp / totalRev) * 100) : 0;
-  document.getElementById('stat-pct')!.textContent = `${pct}% of revenue spent`;
-  const cats = sheetsToCategories(data);
-  document.getElementById('stat-cats')!.textContent = String(cats.length);
+  document.getElementById('stat-revenue')!.textContent = fmt(totalRev);
+  document.getElementById('stat-expenses')!.textContent = fmt(totalExp);
+  document.getElementById('stat-exp-est')!.textContent = `est. ${fmt(totalExpEst)}`;
+  document.getElementById('stat-balance')!.textContent = fmt(balance);
+  document.getElementById('stat-bal-est')!.textContent = `est. ${fmt(balEst)}`;
 
-  renderChart(cats);
-  renderList(cats);
+  const expenses: any[] = data.expenses || [];
+  const revenue: any[] = data.revenue || [];
+  document.getElementById('stat-items')!.textContent = String(expenses.length);
+  allExpenses = expenses;
+
+  // Revenue table
+  const revSection = document.getElementById('revenue-section')!;
+  if (revenue.length > 0) {
+    revSection.style.display = '';
+    const tbody = document.getElementById('revenue-tbody')!;
+    tbody.innerHTML = revenue.map(r => `<tr>
+      <td>${fmtCell(r.date)}</td>
+      <td><strong>${r.item}</strong></td>
+      <td>${r.estimated > 0 ? fmt(r.estimated) : '—'}</td>
+      <td>${r.actual > 0 ? fmt(r.actual) : '—'}</td>
+      <td>${fmtCell(r.submittedBy)}</td>
+    </tr>`).join('');
+  } else {
+    revSection.style.display = 'none';
+  }
+
+  renderExpenseTable(expenses);
+  renderCharts(expenses);
 }
 
-function renderMock() {
-  const cats = [
-    { name: 'Flights', budget: 6000, spent: 0 },
-    { name: 'Rooms', budget: 5437, spent: 8448 },
-    { name: 'Conference Registration', budget: 1560, spent: 5110 },
-    { name: 'Theme Park', budget: 550, spent: 550 },
-    { name: 'Food + misc', budget: 200, spent: 0 },
-  ];
-  document.getElementById('stat-total')!.textContent = fmt(21250);
-  document.getElementById('stat-spent')!.textContent = fmt(14108);
-  document.getElementById('stat-remaining')!.textContent = fmt(10542);
-  document.getElementById('stat-pct')!.textContent = 'Demo data';
-  document.getElementById('stat-cats')!.textContent = String(cats.length);
-  renderChart(cats);
-  renderList(cats);
-}
-
-let chartInstance: any = null;
-
-function renderChart(cats: { name: string; budget: number; spent: number }[]) {
-  const canvas = document.getElementById('budget-chart') as HTMLCanvasElement;
-  if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
-  if (!cats.length) return;
-  const ctx = canvas.getContext('2d')!;
-  chartInstance = new (window as any).Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: cats.map(c => c.name),
-      datasets: [
-        {
-          label: 'Estimated',
-          data: cats.map(c => c.budget),
-          backgroundColor: 'rgba(30,58,138,0.15)',
-          borderColor: '#1e3a8a',
-          borderWidth: 1.5,
-          borderRadius: 6,
-        },
-        {
-          label: 'Actual',
-          data: cats.map(c => c.spent),
-          backgroundColor: (ctx2: any) => {
-            const cat = cats[ctx2.dataIndex];
-            return cat.budget > 0 && cat.spent / cat.budget > 1.1 ? 'rgba(220,38,38,0.75)' : 'rgba(59,130,246,0.75)';
-          },
-          borderColor: (ctx2: any) => {
-            const cat = cats[ctx2.dataIndex];
-            return cat.budget > 0 && cat.spent / cat.budget > 1.1 ? '#dc2626' : '#3b82f6';
-          },
-          borderWidth: 1.5,
-          borderRadius: 6,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { position: 'top', labels: { font: { family: "'Plus Jakarta Sans', sans-serif", size: 12 }, boxWidth: 12, padding: 16 } },
-        tooltip: { callbacks: { label: (ctx2: any) => ` ${ctx2.dataset.label}: ${fmt(ctx2.raw)}` } },
-      },
-      scales: {
-        x: { grid: { display: false }, ticks: { font: { family: "'Plus Jakarta Sans', sans-serif", size: 11 } } },
-        y: { grid: { color: '#f1f5f9' }, ticks: { font: { family: "'Plus Jakarta Sans', sans-serif", size: 11 }, callback: (v: any) => fmt(v) } },
-      },
-    },
-  });
-}
-
-function renderList(cats: { name: string; budget: number; spent: number }[]) {
-  const listEl = document.getElementById('category-list')!;
-  if (!cats.length) { listEl.innerHTML = '<p style="color:#94a3b8;text-align:center;padding:1rem">No expense items found</p>'; return; }
-  listEl.innerHTML = cats.map(c => {
-    const pct = c.budget > 0 ? Math.round((c.spent / c.budget) * 100) : 0;
-    const isOver = c.budget > 0 && c.spent > c.budget * 1.05;
-    return `
-      <div class="cat-row">
-        <div class="cat-info">
-          <span class="cat-name">${c.name}</span>
-          <span class="cat-amounts">${fmt(c.spent)} <span class="cat-of">actual /</span> ${fmt(c.budget)} est.</span>
-        </div>
-        <div class="progress-bar-track">
-          <div class="progress-bar-fill ${isOver ? 'danger' : ''}" style="width:${Math.min(pct,100)}%"></div>
-        </div>
-        <span class="cat-pct ${isOver ? 'danger' : ''}">${pct}%</span>
-      </div>
-    `;
+function renderExpenseTable(expenses: any[]) {
+  const search = (document.getElementById('expense-search') as HTMLInputElement).value.toLowerCase();
+  const filtered = expenses.filter(e => !search || e.item?.toLowerCase().includes(search));
+  const tbody = document.getElementById('expense-tbody')!;
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:1.5rem">No expense items</td></tr>';
+    return;
+  }
+  tbody.innerHTML = filtered.map(e => {
+    const over = e.actual > 0 && e.estimated > 0 && e.actual > e.estimated * 1.05;
+    return `<tr${over ? ' class="row-over"' : ''}>
+      <td>${fmtCell(e.date)}</td>
+      <td><strong>${e.item}</strong></td>
+      <td>${e.price > 0 ? fmt(e.price) : '—'}</td>
+      <td>${e.count > 0 ? e.count : '—'}</td>
+      <td>${e.estimated > 0 ? fmt(e.estimated) : '—'}</td>
+      <td class="${over ? 'over-budget' : ''}">${e.actual > 0 ? fmt(e.actual) : '—'}</td>
+      <td>${fmtCell(e.submittedBy)}</td>
+      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${fmtCell(e.mfPaNotes)}</td>
+    </tr>`;
   }).join('');
 }
 
-async function init() {
-  await loadAndRender();
+function renderCharts(expenses: any[]) {
+  const items = expenses.filter(e => e.item);
+  const labels = items.map(e => e.item);
+  const estimated = items.map(e => e.estimated || 0);
+  const actual = items.map(e => e.actual || 0);
+
+  // Bar chart
+  const barCtx = (document.getElementById('budget-chart') as HTMLCanvasElement).getContext('2d')!;
+  if (chartBar) { chartBar.destroy(); chartBar = null; }
+  if (items.length > 0) {
+    chartBar = new (window as any).Chart(barCtx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Estimated', data: estimated, backgroundColor: 'rgba(30,58,138,0.15)', borderColor: '#1e3a8a', borderWidth: 1.5, borderRadius: 6 },
+          { label: 'Actual', data: actual,
+            backgroundColor: items.map((e, i) => actual[i] > estimated[i] * 1.05 ? 'rgba(220,38,38,0.75)' : 'rgba(59,130,246,0.75)'),
+            borderColor: items.map((e, i) => actual[i] > estimated[i] * 1.05 ? '#dc2626' : '#3b82f6'),
+            borderWidth: 1.5, borderRadius: 6 },
+        ],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'top', labels: { font: { family: "'Plus Jakarta Sans', sans-serif", size: 11 }, boxWidth: 12, padding: 12 } },
+          tooltip: { callbacks: { label: (c: any) => ` ${c.dataset.label}: ${fmt(c.raw)}` } },
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { family: "'Plus Jakarta Sans', sans-serif", size: 10 }, maxRotation: 30 } },
+          y: { grid: { color: '#f1f5f9' }, ticks: { font: { family: "'Plus Jakarta Sans', sans-serif", size: 10 }, callback: (v: any) => fmt(v) } },
+        },
+      },
+    });
+  }
+
+  // Doughnut chart
+  const donutCtx = (document.getElementById('donut-chart') as HTMLCanvasElement).getContext('2d')!;
+  if (chartDonut) { chartDonut.destroy(); chartDonut = null; }
+  const COLORS = ['#3b82f6','#8b5cf6','#f97316','#14b8a6','#ef4444','#22c55e','#f59e0b','#06b6d4','#e11d48','#64748b'];
+  const donutData = items.filter(e => e.actual > 0);
+  if (donutData.length > 0) {
+    chartDonut = new (window as any).Chart(donutCtx, {
+      type: 'doughnut',
+      data: {
+        labels: donutData.map(e => e.item),
+        datasets: [{ data: donutData.map(e => e.actual), backgroundColor: donutData.map((_, i) => COLORS[i % COLORS.length]), borderWidth: 2, borderColor: 'white' }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: (c: any) => ` ${c.label}: ${fmt(c.raw)}` } },
+        },
+        cutout: '65%',
+      },
+    });
+    const legendEl = document.getElementById('donut-legend')!;
+    legendEl.innerHTML = donutData.map((e, i) => `
+      <div class="donut-legend-item">
+        <span class="donut-dot" style="background:${COLORS[i % COLORS.length]}"></span>
+        <span class="donut-label">${e.item}</span>
+        <span class="donut-val">${fmt(e.actual)}</span>
+      </div>
+    `).join('');
+  }
 }
 
-init();
+function renderMockData() {
+  document.getElementById('stat-revenue')!.textContent = '$24,650';
+  document.getElementById('stat-expenses')!.textContent = '$14,108';
+  document.getElementById('stat-exp-est')!.textContent = 'est. $15,148';
+  document.getElementById('stat-balance')!.textContent = '$10,542';
+  document.getElementById('stat-bal-est')!.textContent = 'est. $6,102';
+  document.getElementById('stat-items')!.textContent = '7';
+  allExpenses = [
+    { item: 'Transportation (Flights)', date: '9/18', price: 750, count: 8, estimated: 6000, actual: 0, submittedBy: '', mfPaNotes: '' },
+    { item: 'Transportation (Shuttle)', price: 81.50, count: 1, estimated: 650, actual: 0 },
+    { item: 'Rooms', price: 679.73, count: 4, estimated: 5437.80, actual: 8448 },
+    { item: 'Conference Registration (Student)', price: 195, count: 8, estimated: 1560, actual: 5110 },
+    { item: 'Theme Park (Six Flags)', price: 55, count: 10, estimated: 550, actual: 550 },
+    { item: 'Conference Registration (Adviser)', price: 125, count: 2, estimated: 250, actual: 0 },
+    { item: 'Food + misc', price: 200, count: 1, estimated: 200, actual: 0 },
+  ];
+  renderExpenseTable(allExpenses);
+  renderCharts(allExpenses);
+}
+
+// ── SLC Trips ──────────────────────────────────────────────────────
+let allSlcTrips: any[] = [];
+let editingSlcId: string | null = null;
+
+async function loadSlcTrips() {
+  try {
+    const r = await fetch(`${API}?resource=slc-trips`, { headers: h() });
+    if (r.ok) { const d = await r.json(); allSlcTrips = d.items || []; }
+  } catch {}
+  renderSlcGrid();
+}
+
+function renderSlcGrid() {
+  const grid = document.getElementById('slc-grid')!;
+  if (allSlcTrips.length === 0) {
+    grid.innerHTML = '<div class="empty-state" style="padding:2rem"><p>No SLC trips recorded yet. Click "+ SLC Trip" to add one.</p></div>';
+    return;
+  }
+  const sorted = [...allSlcTrips].sort((a, b) => (b.year || '').localeCompare(a.year || ''));
+  grid.innerHTML = sorted.map(t => `
+    <div class="slc-card">
+      <div class="slc-card-header">
+        <div>
+          <div class="slc-year">${t.year || '—'}</div>
+          <div class="slc-dest">${t.destination || 'SLC Conference'}</div>
+        </div>
+        <div style="display:flex;gap:0.5rem;align-items:flex-start">
+          ${t.driveLink ? `<a href="${t.driveLink}" target="_blank" class="btn btn-secondary btn-sm">Drive</a>` : ''}
+          <button class="btn-icon slc-edit-btn" data-id="${t.id}" title="Edit">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="slc-stats">
+        <div class="slc-stat"><span class="slc-stat-label">Total Cost</span><span class="slc-stat-val">${t.totalCost ? fmt(t.totalCost) : '—'}</span></div>
+        <div class="slc-stat"><span class="slc-stat-label">Attendees</span><span class="slc-stat-val">${t.attendeeCount || (t.attendees?.length) || '—'}</span></div>
+      </div>
+      ${t.flightDetails ? `<div class="slc-detail"><strong>Flights:</strong> ${t.flightDetails}</div>` : ''}
+      ${t.hotelDetails ? `<div class="slc-detail"><strong>Hotel:</strong> ${t.hotelDetails}</div>` : ''}
+      ${t.attendees ? `<div class="slc-detail"><strong>Who went:</strong> ${Array.isArray(t.attendees) ? t.attendees.join(', ') : t.attendees}</div>` : ''}
+      ${t.notes ? `<div class="slc-detail" style="color:#64748b">${t.notes}</div>` : ''}
+    </div>
+  `).join('');
+  grid.querySelectorAll('.slc-edit-btn').forEach(btn => {
+    btn.addEventListener('click', () => openSlcEdit((btn as HTMLElement).dataset.id!));
+  });
+}
+
+function openSlcAdd() {
+  editingSlcId = null;
+  document.getElementById('slc-modal-title')!.textContent = 'Add SLC Trip';
+  document.getElementById('slc-delete-btn')!.style.display = 'none';
+  ['slc-id','slc-year','slc-dest','slc-flight','slc-hotel','slc-cost','slc-count','slc-attendees','slc-drive','slc-notes'].forEach(id => {
+    (document.getElementById(id) as HTMLInputElement).value = '';
+  });
+  document.getElementById('slc-modal')!.classList.add('open');
+}
+
+function openSlcEdit(id: string) {
+  const t = allSlcTrips.find(x => x.id === id);
+  if (!t) return;
+  editingSlcId = id;
+  document.getElementById('slc-modal-title')!.textContent = 'Edit SLC Trip';
+  document.getElementById('slc-delete-btn')!.style.display = '';
+  (document.getElementById('slc-id') as HTMLInputElement).value = id;
+  (document.getElementById('slc-year') as HTMLInputElement).value = t.year || '';
+  (document.getElementById('slc-dest') as HTMLInputElement).value = t.destination || '';
+  (document.getElementById('slc-flight') as HTMLTextAreaElement).value = t.flightDetails || '';
+  (document.getElementById('slc-hotel') as HTMLTextAreaElement).value = t.hotelDetails || '';
+  (document.getElementById('slc-cost') as HTMLInputElement).value = t.totalCost || '';
+  (document.getElementById('slc-count') as HTMLInputElement).value = t.attendeeCount || '';
+  const att = Array.isArray(t.attendees) ? t.attendees.join(', ') : (t.attendees || '');
+  (document.getElementById('slc-attendees') as HTMLInputElement).value = att;
+  (document.getElementById('slc-drive') as HTMLInputElement).value = t.driveLink || '';
+  (document.getElementById('slc-notes') as HTMLTextAreaElement).value = t.notes || '';
+  document.getElementById('slc-modal')!.classList.add('open');
+}
+
+function closeSlcModal() { document.getElementById('slc-modal')!.classList.remove('open'); }
+
+document.getElementById('add-slc-btn')?.addEventListener('click', openSlcAdd);
+document.getElementById('slc-modal-close')?.addEventListener('click', closeSlcModal);
+document.getElementById('slc-cancel-btn')?.addEventListener('click', closeSlcModal);
+document.getElementById('slc-modal')?.addEventListener('click', e => { if (e.target === e.currentTarget) closeSlcModal(); });
+
+document.getElementById('slc-save-btn')?.addEventListener('click', async () => {
+  const year = (document.getElementById('slc-year') as HTMLInputElement).value.trim();
+  if (!year) { toast('Year is required', 'error'); return; }
+  const attendeesRaw = (document.getElementById('slc-attendees') as HTMLInputElement).value;
+  const attendees = attendeesRaw ? attendeesRaw.split(',').map(s => s.trim()).filter(Boolean) : [];
+  const payload = {
+    year,
+    destination: (document.getElementById('slc-dest') as HTMLInputElement).value.trim() || null,
+    flightDetails: (document.getElementById('slc-flight') as HTMLTextAreaElement).value.trim() || null,
+    hotelDetails: (document.getElementById('slc-hotel') as HTMLTextAreaElement).value.trim() || null,
+    totalCost: Number((document.getElementById('slc-cost') as HTMLInputElement).value) || null,
+    attendeeCount: Number((document.getElementById('slc-count') as HTMLInputElement).value) || attendees.length || null,
+    attendees: attendees.length ? attendees : null,
+    driveLink: (document.getElementById('slc-drive') as HTMLInputElement).value.trim() || null,
+    notes: (document.getElementById('slc-notes') as HTMLTextAreaElement).value.trim() || null,
+  };
+  const btn = document.getElementById('slc-save-btn') as HTMLButtonElement;
+  btn.textContent = 'Saving…'; btn.disabled = true;
+  try {
+    if (editingSlcId) {
+      await fetch(`${API}?resource=slc-trips`, { method: 'PUT', headers: h(), body: JSON.stringify({ id: editingSlcId, ...payload }) });
+    } else {
+      await fetch(`${API}?resource=slc-trips`, { method: 'POST', headers: h(), body: JSON.stringify(payload) });
+    }
+    await loadSlcTrips();
+    closeSlcModal();
+    toast(editingSlcId ? 'Trip updated' : 'Trip added');
+  } catch { toast('Failed to save', 'error'); }
+  finally { btn.textContent = 'Save Trip'; btn.disabled = false; }
+});
+
+document.getElementById('slc-delete-btn')?.addEventListener('click', async () => {
+  if (!editingSlcId || !confirm('Delete this SLC trip?')) return;
+  await fetch(`${API}?resource=slc-trips`, { method: 'DELETE', headers: h(), body: JSON.stringify({ id: editingSlcId }) });
+  await loadSlcTrips(); closeSlcModal(); toast('Trip deleted');
+});
+
+// Expense search
+document.getElementById('expense-search')?.addEventListener('input', () => renderExpenseTable(allExpenses));
+
+// Export CSV
+document.getElementById('export-csv-btn')?.addEventListener('click', () => {
+  if (!allExpenses.length) { toast('No data to export', 'error'); return; }
+  const rows = [['Item','Date','Price','Count','Estimated','Actual','Submitted By']];
+  allExpenses.forEach(e => rows.push([e.item, e.date, e.price, e.count, e.estimated, e.actual, e.submittedBy]));
+  const csv = rows.map(r => r.map(c => `"${String(c||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a = Object.assign(document.createElement('a'), { href: 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv), download: 'budget.csv' });
+  a.click();
+});
+
+loadSheets();
+loadSlcTrips();
 </script>
 
 <style>
-.tab-bar { gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
-.tab-btn {
-  padding: 0.4rem 1rem; border: 1.5px solid #e2e8f0; border-radius: 8px;
-  background: white; font-size: 0.82rem; font-weight: 600; color: #475569;
-  cursor: pointer; font-family: inherit; transition: all 0.15s;
-}
-.tab-btn.active { background: #1e3a8a; color: white; border-color: #1e3a8a; }
-
 .sync-status { display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; color: #64748b; }
 .sync-dot { width: 7px; height: 7px; border-radius: 50%; }
 .sync-dot.demo { background: #f59e0b; }
 .sync-dot.live { background: #22c55e; animation: pulse 2s infinite; }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
+.tab-bar { gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+.tab-btn { padding: 0.4rem 1rem; border: 1.5px solid #e2e8f0; border-radius: 8px; background: white; font-size: 0.82rem; font-weight: 600; color: #475569; cursor: pointer; font-family: inherit; transition: all 0.15s; }
+.tab-btn.active { background: #1e3a8a; color: white; border-color: #1e3a8a; }
+
 .green { color: #15803d !important; }
-.card-title { font-size: 1rem; font-weight: 700; color: #0f172a; margin: 0 0 1.25rem; }
+.section-title { font-size: 0.95rem; font-weight: 700; color: #0f172a; margin: 0 0 1.25rem; }
+.section-card { margin-bottom: 1.25rem; }
 
-.budget-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 1.25rem; }
-@media (max-width: 900px) { .budget-grid { grid-template-columns: 1fr; } }
-
+.charts-row { display: grid; grid-template-columns: 1.5fr 1fr; gap: 1.25rem; margin-bottom: 1.25rem; }
+@media (max-width: 900px) { .charts-row { grid-template-columns: 1fr; } }
 .chart-card { position: relative; }
-#budget-chart { max-height: 280px; }
+#budget-chart { max-height: 260px; }
+.chart-card-sm { display: flex; flex-direction: column; }
+#donut-chart { max-height: 180px; flex-shrink: 0; }
 
-.cat-row { display: flex; align-items: center; gap: 0.875rem; padding: 0.625rem 0; border-bottom: 1px solid #f1f5f9; }
-.cat-row:last-child { border-bottom: none; }
-.cat-info { min-width: 180px; }
-.cat-name { display: block; font-size: 0.875rem; font-weight: 600; color: #1e293b; }
-.cat-amounts { font-size: 0.75rem; color: #64748b; }
-.cat-of { color: #94a3b8; }
-.progress-bar-track { flex: 1; height: 6px; background: #f1f5f9; border-radius: 3px; overflow: hidden; }
-.progress-bar-fill { height: 100%; background: #3b82f6; border-radius: 3px; transition: width 0.5s; }
-.progress-bar-fill.danger { background: #dc2626; }
-.cat-pct { font-size: 0.75rem; font-weight: 700; color: #64748b; min-width: 36px; text-align: right; }
-.cat-pct.danger { color: #dc2626; }
+.donut-legend { margin-top: 0.75rem; display: flex; flex-direction: column; gap: 0.35rem; overflow-y: auto; max-height: 120px; }
+.donut-legend-item { display: flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; }
+.donut-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.donut-label { flex: 1; color: #475569; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.donut-val { font-weight: 700; color: #1e293b; white-space: nowrap; }
 
+.data-table-wrap { overflow-x: auto; }
+.data-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; min-width: 600px; }
+.data-table thead tr { background: #f8fafc; border-bottom: 2px solid #e2e8f0; }
+.data-table th { padding: 0.6rem 0.875rem; text-align: left; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; white-space: nowrap; }
+.data-table td { padding: 0.65rem 0.875rem; border-bottom: 1px solid #f1f5f9; color: #374151; vertical-align: middle; }
+.data-table tbody tr:last-child td { border-bottom: none; }
+.data-table tbody tr:hover { background: #fafafa; }
+.row-over { background: #fff5f5 !important; }
+.over-budget { color: #dc2626; font-weight: 700; }
+
+.filter-input { padding: 0.45rem 0.875rem; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 0.85rem; color: #374151; font-family: inherit; width: 200px; }
+.filter-input:focus { outline: none; border-color: #3b82f6; }
+
+/* SLC cards */
+.slc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1rem; }
+.slc-card { border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.25rem; background: #fafafa; }
+.slc-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; }
+.slc-year { font-size: 1.5rem; font-weight: 800; color: #1e3a8a; line-height: 1; }
+.slc-dest { font-size: 0.875rem; color: #64748b; margin-top: 0.2rem; }
+.slc-stats { display: flex; gap: 1.5rem; margin-bottom: 0.875rem; padding-bottom: 0.875rem; border-bottom: 1px solid #e2e8f0; }
+.slc-stat { display: flex; flex-direction: column; gap: 0.1rem; }
+.slc-stat-label { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; }
+.slc-stat-val { font-size: 1.1rem; font-weight: 700; color: #0f172a; }
+.slc-detail { font-size: 0.82rem; color: #374151; margin-top: 0.5rem; line-height: 1.5; }
+.slc-detail strong { color: #1e293b; }
 </style>

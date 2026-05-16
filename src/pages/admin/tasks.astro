@@ -571,6 +571,7 @@ loadRosterAutocomplete();
 .filter-select {
   padding: 0.55rem 0.875rem; border: 1.5px solid #e2e8f0; border-radius: 8px;
   font-size: 0.875rem; color: #374151; background: white; cursor: pointer;
+  max-width: 180px;
 }
 
 /* ── Table ────────────────────────────────────────────────── */
@@ -606,7 +607,7 @@ loadRosterAutocomplete();
 .date-col, .deadline-col { white-space: nowrap; color: #64748b; font-size: 0.82rem; }
 .deadline-col.overdue { color: #dc2626; font-weight: 700; }
 .task-name { font-weight: 700; color: #0f172a; }
-.desc-col { color: #64748b; font-size: 0.82rem; max-width: 200px; }
+.desc-col { color: #64748b; font-size: 0.82rem; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .officer-col { white-space: nowrap; }
 .loc-col { white-space: nowrap; }
 .actions-col { white-space: nowrap; }
@@ -627,10 +628,10 @@ loadRosterAutocomplete();
 
 /* Department + sheets source badges */
 .dept-badge {
-  display: inline-block; margin-left: 0.4rem;
+  display: block; margin-top: 0.2rem;
   background: #f0f9ff; color: #0369a1;
   font-size: 0.68rem; font-weight: 700; padding: 0.1rem 0.45rem;
-  border-radius: 50px; vertical-align: middle; border: 1px solid #bae6fd;
+  border-radius: 50px; width: fit-content; border: 1px solid #bae6fd;
 }
 .sheets-badge {
   display: inline-block; background: #f0fdf4; color: #15803d;

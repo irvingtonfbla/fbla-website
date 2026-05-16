@@ -115,6 +115,10 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
           <label class="form-label">Description</label>
           <textarea class="form-control" id="event-desc" rows="3" placeholder="Optional notes about this event…"></textarea>
         </div>
+        <div class="form-group" id="meeting-notes-group" style="display:none">
+          <label class="form-label">Meeting Notes <span style="color:#94a3b8;font-weight:400">(Officer meetings only)</span></label>
+          <textarea class="form-control" id="event-notes" rows="4" placeholder="Agenda, decisions made, action items…"></textarea>
+        </div>
         <div class="modal-actions">
           <button class="btn btn-secondary" id="delete-event-btn" style="display:none">Delete</button>
           <div style="flex:1"></div>
@@ -142,6 +146,14 @@ const TYPE_LABELS: Record<string, string> = {
   loop: 'LOOP', officer: 'Officer Mtg', irl: 'IRL', event: 'Event',
   conference: 'Conference', fundraiser: 'Fundraiser',
 };
+
+function updateNotesVisibility() {
+  const type = (document.getElementById('event-type') as HTMLSelectElement).value;
+  const group = document.getElementById('meeting-notes-group')!;
+  group.style.display = type === 'officer' ? '' : 'none';
+}
+
+document.getElementById('event-type')?.addEventListener('change', updateNotesVisibility);
 
 let allEvents: any[] = [];
 let currentYear = new Date().getFullYear();
@@ -250,6 +262,7 @@ function renderEventList(day?: string | null) {
           <span class="badge" style="background:${TYPE_COLORS[e.type]||'#f1f5f9'}20;color:${TYPE_COLORS[e.type]||'#64748b'}">${TYPE_LABELS[e.type]||e.type}</span>
         </div>
         ${e.description ? `<div class="event-row-desc">${e.description}</div>` : ''}
+        ${e.type === 'officer' && e.meetingNotes ? `<div class="event-notes-preview">${e.meetingNotes.slice(0,120)}${e.meetingNotes.length > 120 ? '…' : ''}</div>` : ''}
       </div>
       <div class="event-row-actions">
         ${e.meetingLink ? `<a href="${e.meetingLink}" target="_blank" class="btn btn-secondary btn-sm">Join</a>` : ''}
@@ -275,7 +288,9 @@ function openAddModal() {
   (document.getElementById('event-end') as any).value = '';
   (document.getElementById('event-link') as any).value = '';
   (document.getElementById('event-desc') as any).value = '';
+  (document.getElementById('event-notes') as any).value = '';
   (document.getElementById('delete-event-btn') as any).style.display = 'none';
+  updateNotesVisibility();
   document.getElementById('event-modal')!.classList.add('open');
 }
 
@@ -291,7 +306,9 @@ function openEditModal(id: string) {
   (document.getElementById('event-end') as any).value = ev.endDate?.slice(0,10) || '';
   (document.getElementById('event-link') as any).value = ev.meetingLink || '';
   (document.getElementById('event-desc') as any).value = ev.description || '';
+  (document.getElementById('event-notes') as any).value = ev.meetingNotes || '';
   (document.getElementById('delete-event-btn') as any).style.display = '';
+  updateNotesVisibility();
   document.getElementById('event-modal')!.classList.add('open');
 }
 
@@ -328,10 +345,11 @@ document.getElementById('save-event-btn')?.addEventListener('click', async () =>
   const endDate = (document.getElementById('event-end') as HTMLInputElement).value;
   const meetingLink = (document.getElementById('event-link') as HTMLInputElement).value.trim();
   const description = (document.getElementById('event-desc') as HTMLTextAreaElement).value.trim();
+  const notes = (document.getElementById('event-notes') as HTMLTextAreaElement).value.trim();
 
   if (!title || !startDate) { toast('Title and start date are required', 'error'); return; }
 
-  const payload = { title, type, startDate, endDate: endDate || null, meetingLink: meetingLink || null, description: description || null };
+  const payload: any = { title, type, startDate, endDate: endDate || null, meetingLink: meetingLink || null, description: description || null, meetingNotes: (type === 'officer' && notes) ? notes : null };
   const btn = document.getElementById('save-event-btn') as HTMLButtonElement;
   btn.textContent = 'Saving…'; btn.disabled = true;
 
@@ -343,6 +361,40 @@ document.getElementById('save-event-btn')?.addEventListener('click', async () =>
       res = await fetch(`${API}?resource=events`, { method: 'POST', headers: h(), body: JSON.stringify(payload) });
     }
     if (!res.ok) throw new Error(await res.text());
+
+    // Auto-save meeting notes as a minutes entry for officer meetings
+    if (type === 'officer' && notes) {
+      const minutesPayload = { title, date: startDate, type: 'officer', content: notes };
+      if (editingId) {
+        // Try to find existing minutes entry linked to this event; just POST a new/update
+        const ev = allEvents.find(e => e.id === editingId);
+        if (ev?.minutesId) {
+          await fetch(`${API}?resource=minutes`, { method: 'PUT', headers: h(), body: JSON.stringify({ id: ev.minutesId, ...minutesPayload }) }).catch(() => {});
+        } else {
+          const mr = await fetch(`${API}?resource=minutes`, { method: 'POST', headers: h(), body: JSON.stringify(minutesPayload) }).catch(() => null);
+          if (mr?.ok) {
+            const md = await mr.json().catch(() => null);
+            if (md?.id) {
+              await fetch(`${API}?resource=events`, { method: 'PUT', headers: h(), body: JSON.stringify({ id: editingId, minutesId: md.id }) }).catch(() => {});
+            }
+          }
+        }
+      } else {
+        const mr = await fetch(`${API}?resource=minutes`, { method: 'POST', headers: h(), body: JSON.stringify(minutesPayload) }).catch(() => null);
+        if (mr?.ok) {
+          const md = await mr.json().catch(() => null);
+          if (md?.id) {
+            // We need the new event id — reload first then patch
+            await loadEvents();
+            const newEv = allEvents.find(e => e.title === title && e.startDate === startDate);
+            if (newEv) {
+              await fetch(`${API}?resource=events`, { method: 'PUT', headers: h(), body: JSON.stringify({ id: newEv.id, minutesId: md.id }) }).catch(() => {});
+            }
+          }
+        }
+      }
+    }
+
     await loadEvents();
     closeModal();
     toast(editingId ? 'Event updated' : 'Event added');
@@ -437,4 +489,6 @@ loadEvents();
 .skeleton-list { display: flex; flex-direction: column; gap: 0.75rem; }
 .skeleton-item { height: 60px; background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 8px; }
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+.event-notes-preview { font-size: 0.75rem; color: #64748b; margin-top: 0.25rem; background: #f8fafc; border-radius: 6px; padding: 0.4rem 0.6rem; border-left: 3px solid #3b82f6; }
 </style>
