@@ -155,15 +155,13 @@ function buildRow(t: any): string {
   const dl     = t.deadline ? fmtLong(t.deadline) : '';
   const od     = isOverdue(t.deadline, t.status);
 
-  // Status cell: inline select for blob tasks, static badge for sheet tasks
-  const statusCell = fromSheets
-    ? `<span class="status-badge s-${t.status}">${STATUS_LABEL[t.status]}</span>`
-    : `<select class="status-sel s-${t.status}" data-id="${t.id}">
-        <option value="not-started"${t.status==='not-started'?' selected':''}>Not Started</option>
-        <option value="in-progress"${t.status==='in-progress'?' selected':''}>In Progress</option>
-        <option value="done"${t.status==='done'?' selected':''}>Done</option>
-        <option value="missed"${t.status==='missed'?' selected':''}>Missed</option>
-       </select>`;
+  // Status: editable dropdown for all tasks. Sheet tasks save an override to Blobs.
+  const statusCell = `<select class="status-sel s-${t.status}" data-id="${t.id}">
+      <option value="not-started"${t.status==='not-started'?' selected':''}>Not Started</option>
+      <option value="in-progress"${t.status==='in-progress'?' selected':''}>In Progress</option>
+      <option value="done"${t.status==='done'?' selected':''}>Done</option>
+      <option value="missed"${t.status==='missed'?' selected':''}>Missed</option>
+     </select>`;
 
   const officers = [lead, ...others].filter(Boolean);
 
@@ -181,7 +179,7 @@ function buildRow(t: any): string {
     </div>
     <div class="tcell tc-actions">
       ${fromSheets
-        ? `<span class="sheets-badge">Sheets</span>`
+        ? `<span class="sheets-badge" title="From Google Sheets — status changes are saved as local overrides">Sheets</span>`
         : `<button class="edit-btn" data-id="${t.id}" title="Edit task">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
            </button>`
@@ -314,10 +312,31 @@ function populateOfficerFilter() {
 
 // ── Status update + strikes ──────────────────────────────────────
 async function updateStatus(task: any, newStatus: string) {
-  await fetch(`${API}?resource=tasks`, {
-    method: 'PUT', headers: h(),
-    body: JSON.stringify({ id: task.id, status: newStatus }),
-  });
+  if (task.source === 'sheets') {
+    // Sheet tasks can't be written back to Sheets — save a local override in Blobs instead
+    if (task._overrideId) {
+      await fetch(`${API}?resource=tasks`, {
+        method: 'PUT', headers: h(),
+        body: JSON.stringify({ id: task._overrideId, status: newStatus }),
+      });
+    } else {
+      await fetch(`${API}?resource=tasks`, {
+        method: 'POST', headers: h(),
+        body: JSON.stringify({
+          overrideFor: task.id,
+          title: task.title,
+          status: newStatus,
+          source: 'override',
+          dateAdded: new Date().toISOString().slice(0, 10),
+        }),
+      });
+    }
+  } else {
+    await fetch(`${API}?resource=tasks`, {
+      method: 'PUT', headers: h(),
+      body: JSON.stringify({ id: task.id, status: newStatus }),
+    });
+  }
   if (newStatus === 'missed') {
     const lead    = task.leadOfficer || task.assignedTo?.[0];
     const others: string[] = task.otherOfficers || task.assignedTo?.slice(1) || [];
@@ -362,11 +381,25 @@ async function loadData() {
 
   if (sheetData?.tasks?.length) {
     sheetTabs = sheetData.tabs || [];
-    const blobIds = new Set(blobTasks.map((t: any) => t.id));
-    allTasks = [...sheetData.tasks, ...blobTasks.filter((t: any) => !blobIds.has(t.id))];
+
+    // Separate overrides (sheet status changes saved locally) from regular blob tasks
+    const overrides = blobTasks.filter((t: any) => t.overrideFor);
+    const overrideMap: Record<string, any> = {};
+    overrides.forEach((t: any) => { overrideMap[t.overrideFor] = t; });
+
+    const regularBlob = blobTasks.filter((t: any) => !t.overrideFor);
+    const blobIds = new Set(regularBlob.map((t: any) => t.id));
+
+    // Apply any saved overrides to the matching sheet task
+    const sheetWithOverrides = sheetData.tasks.map((t: any) => {
+      const ov = overrideMap[t.id];
+      return ov ? { ...t, status: ov.status, _overrideId: ov.id } : t;
+    });
+
+    allTasks = [...sheetWithOverrides, ...regularBlob.filter((t: any) => !blobIds.has(t.id))];
   } else {
     sheetTabs = [];
-    allTasks = blobTasks;
+    allTasks = blobTasks.filter((t: any) => !t.overrideFor);
   }
 
   buildDeptTabs();
