@@ -27,15 +27,15 @@ A full officer admin dashboard layered on top of the existing Astro 5 / Netlify 
 ### Layout
 | File | Purpose |
 |---|---|
-| `src/layouts/AdminLayout.astro` | Dark sidebar shell used by all admin pages. Checks `localStorage.fbla_admin_pw` on load — redirects to `/admin` if missing. |
+| `src/layouts/AdminLayout.astro` | Dark sidebar shell used by all admin pages. Checks `localStorage.fbla_admin_pw` on load — redirects to `/admin` if missing. All common styles use `<style is:global>` so they apply to dynamically generated HTML. |
 
 ### Admin pages (all behind password)
 | File | URL | Purpose |
 |---|---|---|
 | `src/pages/admin/index.astro` | `/admin` | Login gate + tool card grid. **Auto-authenticates on localhost** (no password needed for local dev). |
 | `src/pages/admin/dashboard.astro` | `/admin/dashboard` | Overview hub: stats, upcoming events, open tasks, strike leaderboard. |
-| `src/pages/admin/calendar.astro` | `/admin/calendar` | Monthly calendar grid, color-coded by event type, add/edit/delete. Officer meeting events have a **Google Meet link** field and a **Meeting Notes** textarea. Clicking an officer meeting opens a slide-out panel with the meet link + embedded minutes. |
-| `src/pages/admin/tasks.astro` | `/admin/tasks` | **Department card layout** (default) + table toggle. Dept pill tabs at top (All + one per Google Sheet tab). In All view: tasks grouped by dept with section headers, progress bars, pill counts. In single-dept view: flat card grid + summary stats bar. Cards are color-coded by status (green border=done, amber=in-progress, red=missed, gray=not-started). Strike auto-prompt when a task is marked Missed. Live data from `sheets-tasks.js`; falls back to Blobs tasks. |
+| `src/pages/admin/calendar.astro` | `/admin/calendar` | Monthly calendar. Color-coded dots for events + sky-blue dots for CTE/Non-CTE meeting schedule tasks. Clicking a day shows events, meeting schedule tasks (with clickable Canva/URL links), and other task deadlines. "N due" badge on cells with regular deadlines. Upcoming sidebar shows next 14 days of meetings and deadlines. |
+| `src/pages/admin/tasks.astro` | `/admin/tasks` | Spreadsheet-style inline table. Dept tabs at top. Columns: Status · Task + description · Officers · Deadline · Edit. Status dropdown updates instantly (optimistic) for all tasks. Sheet tasks save status overrides to Blobs (see below). Blob tasks get a pencil edit button on hover. Sort: Missed → In Progress → Not Started → Done. |
 | `src/pages/admin/roster.astro` | `/admin/roster` | All FBLA members for the year. Fields: name, role, email, grade, notes. **Strikes column** shows SVG tally marks (groups of 5 with diagonal). Strike data loaded in parallel — matched by full name first, then first name alone. |
 | `src/pages/admin/budget.astro` | `/admin/budget` | Full budget dashboard. Tab bar for multi-tab sheets. Stats row (total revenue, expenses, balance, line item count). Bar chart (estimated vs actual per expense item, red bars when over budget) + doughnut chart (expense breakdown). Searchable expense table with all sheet columns. Revenue table (hidden if empty). SLC trip tracker cards (CRUD via Blobs `slc-trips`). Export CSV. Live data from `sheets-budget.js`. |
 | `src/pages/admin/edit-website.astro` | `/admin/edit-website` | Manage Drive resource links for the public site. CRUD for `website-resources` Blobs resource — paste a Google Drive URL + label + category and it shows as a clickable card grouped by category. Gallery manager is a placeholder (not yet wired to GitHub API). |
@@ -92,6 +92,35 @@ Budget entry columns: `A: Section label · B: Date · C: Item · D: Price · E: 
 
 ---
 
+## Task board — sheet task status overrides
+
+Sheet tasks are read-only from the Sheets API (the site uses a read-only API key, no write-back OAuth). When an officer changes a sheet task's status on the website, a **status override** is saved to Blobs as a `tasks` entry with these fields:
+
+```json
+{ "overrideFor": "<sheetTaskId>", "title": "...", "status": "done", "source": "override" }
+```
+
+On load, `loadData()` fetches both sheet tasks and blob tasks, separates overrides from regular blob tasks, builds an `overrideMap`, and applies overrides to matching sheet tasks before rendering. The override wins over whatever cell color is in the sheet.
+
+**Status updates are optimistic** — the row changes color instantly in memory, then the save happens in the background. If the save fails, the status reverts and shows an error toast.
+
+---
+
+## Calendar — task deadline and meeting integration
+
+The calendar (`calendar.astro`) loads three data sources in parallel:
+1. **Events** — from Blobs via `dashboard?resource=events`
+2. **Blob tasks** — from Blobs via `dashboard?resource=tasks`
+3. **Sheet tasks** — from `sheets-tasks.js`, with overrides applied
+
+Tasks are split into two groups:
+- **Meeting schedule tasks** (`tab === 'CTE Meeting Schedule'` or `'Non-CTE Meeting Schedule'`) — shown as sky-blue dots on calendar cells and as full event rows in the sidebar. Any URL in the description becomes a clickable button (Canva links get a purple Canva button).
+- **All other tasks with deadlines** — shown as a small "N due" badge on the calendar cell. In the sidebar, they appear in an "Other Deadlines" section below events.
+
+The **upcoming sidebar** (no day selected) shows meetings and non-done deadlines due within the next 14 days.
+
+---
+
 ## Calendar + Minutes integration
 
 Meeting minutes only exist for officer meetings — there is no standalone minutes page. The flow:
@@ -121,6 +150,12 @@ Live data is pulled from Google Sheets via `sheets-budget.js`. The page falls ba
 
 ---
 
+## CSS — important note on Astro scoping
+
+All page-level `<style>` tags in admin pages **must use `<style is:global>`**. Astro scopes regular `<style>` blocks by adding a hash attribute to static HTML elements only — dynamically generated HTML (set via `innerHTML`) never gets that hash, so scoped styles silently don't apply. Since the task board, calendar, and other pages generate almost all their content via JavaScript, all their styles are global.
+
+---
+
 ## Auth system
 
 1. User goes to `/admin`
@@ -130,6 +165,8 @@ Live data is pulled from Google Sheets via `sheets-budget.js`. The page falls ba
 
 **Production password:** Netlify dashboard → Site settings → Environment variables → `ADMIN_PASSWORD`  
 **Local dev password:** `.env` → `ADMIN_PASSWORD=sigmafbla67` (gitignored, never commit)
+
+**Multi-user accounts:** Not implemented — one shared password for all officers. If per-officer logins are ever needed, use Google OAuth restricted to the school domain rather than managing multiple passwords.
 
 ---
 
@@ -149,20 +186,22 @@ npx netlify dev
 
 ## Task board specifics
 
-The task board pulls live data from `sheets-tasks.js` (Google Sheets) and merges it with any tasks stored in Blobs (manually added via the Add Task form). Sheet tasks have `source: 'sheets'` and a read-only "Sheets" badge instead of an edit button.
+The task board pulls live data from `sheets-tasks.js` (Google Sheets) and merges it with tasks stored in Blobs. Displayed as a spreadsheet-style inline table grouped by department.
 
-**Card sort order:** Missed → In Progress → Not Started → Done, then by deadline within each group.
+**Row sort order:** Missed → In Progress → Not Started → Done, then by deadline within each group.
 
 **Data fields per task:**
 - `title` — task name
-- `description` — details, times, links
+- `description` — details, times, links (URLs are clickable on the calendar)
 - `leadOfficer` — primary person responsible
 - `otherOfficers` — array of strings
-- `deadline` — `YYYY-MM-DD`
+- `deadline` — `YYYY-MM-DD` (sheet tasks may use `M/D/YYYY` — normalized at render time)
 - `dateAdded` — auto-set on creation
 - `status` — `not-started` | `in-progress` | `done` | `missed`
 - `location` — `""` | `In-person` | `Online`
 - `tab` — department name (from Google Sheet tab, or `"General"` for Blobs tasks)
+- `source` — `"sheets"` for Google Sheet tasks, `"override"` for status override entries
+- `overrideFor` — (override entries only) the `id` of the sheet task being overridden
 
 **Backward compat:** Old tasks that used `assignedTo[]` still render — first element shows as Lead Officer, rest as Other Officers.
 
