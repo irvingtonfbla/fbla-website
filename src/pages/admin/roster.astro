@@ -6,9 +6,9 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   <div class="page-header">
     <div>
       <h1>Member Roster</h1>
-      <p>All Irvington FBLA members for this school year</p>
+      <p>Irvington FBLA — 2025–26 School Year</p>
     </div>
-    <div style="display:flex;gap:0.75rem;align-items:center">
+    <div style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap">
       <div class="search-wrap">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input type="text" id="search-input" placeholder="Search members..." class="search-input" />
@@ -25,6 +25,10 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
         <option value="Officer">Officer</option>
         <option value="Member">Member</option>
       </select>
+      <button class="btn btn-secondary" id="view-toggle">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        Leaderboard
+      </button>
       <button class="btn btn-primary" id="add-btn">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Add Member
@@ -37,31 +41,60 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
       <div class="stat-pill"><span id="stat-total">0</span> total</div>
       <div class="stat-pill officer"><span id="stat-officers">0</span> officers</div>
       <div class="stat-pill member"><span id="stat-members">0</span> members</div>
+      <div class="stat-pill points-pill"><span id="stat-avg-pts">0</span> avg pts</div>
     </div>
 
-    <div class="card" style="padding:0;overflow:hidden">
-      <div id="loading-state" class="empty-state" style="padding:3rem">
-        <div class="loading-spinner" style="margin:0 auto 1rem"></div>
-        <p>Loading roster...</p>
+    <div class="points-legend-bar">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      <span class="plb-label">Earn Points:</span>
+      <span class="plb-item green">CTE Meeting +10</span>
+      <span class="plb-item gold">Win +50</span>
+      <span class="plb-item blue">Compete +20</span>
+      <span class="plb-item purple">Engage +5</span>
+      <span class="plb-item teal">Recruit +15</span>
+      <span class="plb-item red">Strike −25</span>
+    </div>
+
+    <!-- Roster View -->
+    <div id="roster-view">
+      <div class="card" style="padding:0;overflow:hidden">
+        <div id="loading-state" class="empty-state" style="padding:3rem">
+          <div class="loading-spinner" style="margin:0 auto 1rem"></div>
+          <p>Loading roster...</p>
+        </div>
+        <table class="roster-table" id="roster-table" style="display:none">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Role</th>
+              <th>Points</th>
+              <th>Strikes</th>
+              <th>Email</th>
+              <th>Grade</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="roster-body"></tbody>
+        </table>
       </div>
-      <div id="empty-state" class="empty-state" style="display:none;padding:3rem">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        <p>No members yet. Add your first member to get started.</p>
+    </div>
+
+    <!-- Leaderboard View -->
+    <div id="leaderboard-view" style="display:none">
+      <div id="podium" class="podium-grid"></div>
+      <div class="card" style="padding:0;overflow:hidden;margin-top:1.25rem">
+        <table class="roster-table lb-table" id="lb-table">
+          <thead>
+            <tr>
+              <th style="width:50px">#</th>
+              <th>Member</th>
+              <th style="width:200px">Points</th>
+              <th style="width:120px">Role</th>
+            </tr>
+          </thead>
+          <tbody id="lb-body"></tbody>
+        </table>
       </div>
-      <table class="roster-table" id="roster-table" style="display:none">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Role</th>
-            <th>Strikes</th>
-            <th>Email</th>
-            <th>Grade</th>
-            <th>Notes</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="roster-body"></tbody>
-      </table>
     </div>
   </div>
 
@@ -79,11 +112,11 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
           <div class="form-group">
             <label class="form-label">First Name *</label>
-            <input type="text" id="f-first" class="form-control" placeholder="Avnita" />
+            <input type="text" id="f-first" class="form-control" placeholder="First name" />
           </div>
           <div class="form-group">
             <label class="form-label">Last Name *</label>
-            <input type="text" id="f-last" class="form-control" placeholder="Sharma" />
+            <input type="text" id="f-last" class="form-control" placeholder="Last name" />
           </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
@@ -114,11 +147,11 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
         </div>
         <div class="form-group">
           <label class="form-label">Email</label>
-          <input type="email" id="f-email" class="form-control" placeholder="student@student.fuhsd.org" />
+          <input type="email" id="f-email" class="form-control" placeholder="student@gmail.com" />
         </div>
         <div class="form-group">
           <label class="form-label">Notes</label>
-          <input type="text" id="f-notes" class="form-control" placeholder="e.g. competitive events, committee leads..." />
+          <input type="text" id="f-notes" class="form-control" placeholder="Competitive events, committees..." />
         </div>
         <div style="display:flex;gap:0.75rem;justify-content:flex-end;margin-top:0.5rem">
           <button class="btn btn-secondary" id="modal-cancel">Cancel</button>
@@ -137,101 +170,253 @@ const API = `${API_BASE}?resource=roster`;
 const pw = localStorage.getItem('fbla_admin_pw') || '';
 const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${pw}` };
 
+const DEMO_MEMBERS: any[] = [
+  {id:'m0',firstName:'Rahul',lastName:'Manicka Rajkumar',email:'mrj.rahul@gmail.com',role:'President',grade:'12',points:245,strikes:0,notes:'Chapter President'},
+  {id:'m1',firstName:'Naina',lastName:'Akkati',email:'nainaakkati@gmail.com',role:'Vice President',grade:'12',points:210,strikes:0,notes:'Leadership Development'},
+  {id:'m2',firstName:'Advika',lastName:'Anand',email:'awesomeadu08@gmail.com',role:'Secretary',grade:'11',points:195,strikes:0,notes:'Competitive Events Coord.'},
+  {id:'m3',firstName:'Eva',lastName:'Arya',email:'evaaryakirthal@gmail.com',role:'Treasurer',grade:'11',points:180,strikes:0,notes:'Budget & Finance'},
+  {id:'m4',firstName:'Amol',lastName:'Banerjee',email:'amolbanthere@gmail.com',role:'Reporter',grade:'12',points:170,strikes:0,notes:'Social Media Lead'},
+  {id:'m5',firstName:'Neel',lastName:'Bhat',email:'neelganeshbhat@gmail.com',role:'Parliamentarian',grade:'11',points:155,strikes:0,notes:''},
+  {id:'m6',firstName:'Lehana',lastName:'Chennupati',email:'lehana.chennupati@gmail.com',role:'Historian',grade:'11',points:145,strikes:0,notes:''},
+  {id:'m7',firstName:'Zachary',lastName:'Chenthanakij',email:'zchentha@gmail.com',role:'Officer',grade:'12',points:135,strikes:0,notes:''},
+  {id:'m8',firstName:'Stefanie',lastName:'da Cruz',email:'stefanie.l.dacruz@gmail.com',role:'Officer',grade:'11',points:128,strikes:0,notes:''},
+  {id:'m9',firstName:'Ahana',lastName:'Giri',email:'ahgma31@gmail.com',role:'Member',grade:'11',points:140,strikes:0,notes:''},
+  {id:'m10',firstName:'Aarshi',lastName:'Jain',email:'aarshijain0309@gmail.com',role:'Member',grade:'10',points:135,strikes:0,notes:''},
+  {id:'m11',firstName:'Anish',lastName:'Shankar',email:'anish.shankar08@gmail.com',role:'Member',grade:'12',points:130,strikes:0,notes:''},
+  {id:'m12',firstName:'Aratrika',lastName:'Pal',email:'aratrikapal1@gmail.com',role:'Member',grade:'11',points:125,strikes:0,notes:''},
+  {id:'m13',firstName:'Molly',lastName:'Jeng',email:'momojeng3366@gmail.com',role:'Member',grade:'10',points:120,strikes:0,notes:''},
+  {id:'m14',firstName:'Sai Shripad',lastName:'Gottipati',email:'sshripad.g@gmail.com',role:'Member',grade:'11',points:115,strikes:0,notes:''},
+  {id:'m15',firstName:'Aashna',lastName:'Gupta',email:'aasgup312@gmail.com',role:'Member',grade:'10',points:110,strikes:0,notes:''},
+  {id:'m16',firstName:'Stella',lastName:'He',email:'stellahe930@gmail.com',role:'Member',grade:'12',points:105,strikes:0,notes:''},
+  {id:'m17',firstName:'Srikar',lastName:'Kancharla',email:'srikan837@gmail.com',role:'Member',grade:'11',points:100,strikes:0,notes:''},
+  {id:'m18',firstName:'Avi',lastName:'Kapoor',email:'avikapoor34@gmail.com',role:'Member',grade:'10',points:95,strikes:0,notes:''},
+  {id:'m19',firstName:'Chaithranshu',lastName:'Kosuri',email:'chaithrakosuri3@gmail.com',role:'Member',grade:'11',points:92,strikes:0,notes:''},
+  {id:'m20',firstName:'Krish',lastName:'Kowkuntla',email:'krish.kowkuntla@gmail.com',role:'Member',grade:'10',points:88,strikes:0,notes:''},
+  {id:'m21',firstName:'Alvin',lastName:'Lai',email:'alvdadalv@gmail.com',role:'Member',grade:'12',points:85,strikes:0,notes:''},
+  {id:'m22',firstName:'Ayaan',lastName:'Maheshwari',email:'basketballayaan8@gmail.com',role:'Member',grade:'10',points:82,strikes:0,notes:''},
+  {id:'m23',firstName:'Krisha',lastName:'Mahurkar',email:'krishamahurkar@gmail.com',role:'Member',grade:'11',points:80,strikes:0,notes:''},
+  {id:'m24',firstName:'Neel',lastName:'Bhimani',email:'neelbhimani30@gmail.com',role:'Member',grade:'10',points:78,strikes:0,notes:''},
+  {id:'m25',firstName:'Harshith Sai',lastName:'Mannaru',email:'Raocl.m@gmail.com',role:'Member',grade:'11',points:75,strikes:0,notes:''},
+  {id:'m26',firstName:'Veer',lastName:'Mistry',email:'emailveerm@gmail.com',role:'Member',grade:'10',points:70,strikes:2,notes:''},
+  {id:'m27',firstName:'Mai-Ha',lastName:'Nghiem',email:'mai3nghiem@gmail.com',role:'Member',grade:'12',points:68,strikes:0,notes:''},
+  {id:'m28',firstName:'Om',lastName:'Patel',email:'omisgoodatlife@gmail.com',role:'Member',grade:'10',points:65,strikes:1,notes:''},
+  {id:'m29',firstName:'Savar',lastName:'Patil',email:'patilsavar24@gmail.com',role:'Member',grade:'11',points:62,strikes:0,notes:''},
+  {id:'m30',firstName:'Avnita',lastName:'Patil',email:'avnitapatil3@gmail.com',role:'Member',grade:'10',points:60,strikes:0,notes:''},
+  {id:'m31',firstName:'Shreya',lastName:'Pichika',email:'shreyapichika@gmail.com',role:'Member',grade:'11',points:58,strikes:0,notes:''},
+  {id:'m32',firstName:'Sri Manasvi',lastName:'Raparla',email:'srimanrap80@gmail.com',role:'Member',grade:'10',points:56,strikes:0,notes:''},
+  {id:'m33',firstName:'Vaibhav',lastName:'Polavarapu',email:'vaibhavclans@gmail.com',role:'Member',grade:'10',points:55,strikes:0,notes:''},
+  {id:'m34',firstName:'Vaishnavi',lastName:'Polavarapu',email:'vaishnavihearts@gmail.com',role:'Member',grade:'11',points:53,strikes:0,notes:''},
+  {id:'m35',firstName:'Sharanya',lastName:'Ponnala',email:'sharanya.unicorn1@gmail.com',role:'Member',grade:'10',points:50,strikes:0,notes:''},
+  {id:'m36',firstName:'Navneet',lastName:'Prakash',email:'navneetprakash514@gmail.com',role:'Member',grade:'12',points:48,strikes:0,notes:''},
+  {id:'m37',firstName:'Navika',lastName:'Deepak',email:'navikad4@gmail.com',role:'Member',grade:'9',points:46,strikes:0,notes:''},
+  {id:'m38',firstName:'Tanvi',lastName:'Sardana',email:'tanvisardana2009@gmail.com',role:'Member',grade:'10',points:45,strikes:0,notes:''},
+  {id:'m39',firstName:'Yuvan',lastName:'Satish',email:'yuvan.m.satish@gmail.com',role:'Member',grade:'11',points:42,strikes:0,notes:''},
+  {id:'m40',firstName:'Surapujita',lastName:'Seerla',email:'surapujita.s@gmail.com',role:'Member',grade:'10',points:40,strikes:0,notes:''},
+  {id:'m41',firstName:'Avelyn',lastName:'Peng',email:'avepen2011@gmail.com',role:'Member',grade:'9',points:38,strikes:0,notes:''},
+  {id:'m42',firstName:'Rayan',lastName:'Khan',email:'rayankhan.us@gmail.com',role:'Member',grade:'10',points:35,strikes:1,notes:''},
+  {id:'m43',firstName:'Aisha',lastName:'Shoukat',email:'aisha.shoukat777@gmail.com',role:'Member',grade:'11',points:33,strikes:0,notes:''},
+  {id:'m44',firstName:'Ayushi',lastName:'Singh',email:'ayushi.diamond@gmail.com',role:'Member',grade:'10',points:32,strikes:0,notes:''},
+  {id:'m45',firstName:'Hasini',lastName:'Deepak',email:'hasini.srideepak@gmail.com',role:'Member',grade:'9',points:30,strikes:0,notes:''},
+  {id:'m46',firstName:'Rithvik',lastName:'Singidi',email:'rithviksingidi@gmail.com',role:'Member',grade:'11',points:28,strikes:0,notes:''},
+  {id:'m47',firstName:'Poojha',lastName:'Suresh Kumar',email:'poojhasureshkumar@gmail.com',role:'Member',grade:'10',points:27,strikes:0,notes:''},
+  {id:'m48',firstName:'Anushvi',lastName:'Chezhiyan',email:'canushvi@gmail.com',role:'Member',grade:'10',points:25,strikes:0,notes:''},
+  {id:'m49',firstName:'Spriha',lastName:'Talachiru',email:'tspriha@gmail.com',role:'Member',grade:'12',points:24,strikes:0,notes:''},
+  {id:'m50',firstName:'Jyot',lastName:'Kaur',email:'reachjyot.k@gmail.com',role:'Member',grade:'9',points:22,strikes:0,notes:''},
+  {id:'m51',firstName:'Vedant',lastName:'Thakker',email:'vedant28t@gmail.com',role:'Member',grade:'10',points:20,strikes:0,notes:''},
+  {id:'m52',firstName:'Stanley',lastName:'Lu',email:'stalu656@gmail.com',role:'Member',grade:'10',points:19,strikes:0,notes:''},
+  {id:'m53',firstName:'Vivaan',lastName:'Tiwari',email:'vivaantiwari49@gmail.com',role:'Member',grade:'11',points:18,strikes:0,notes:''},
+  {id:'m54',firstName:'Raajas',lastName:'Dixit',email:'raajasrocks@gmail.com',role:'Member',grade:'9',points:17,strikes:0,notes:''},
+  {id:'m55',firstName:'Annika',lastName:'Verma',email:'annikav1001@gmail.com',role:'Member',grade:'10',points:16,strikes:0,notes:''},
+  {id:'m56',firstName:'Aashka',lastName:'Patel',email:'aashkapatel042@gmail.com',role:'Member',grade:'10',points:15,strikes:0,notes:''},
+  {id:'m57',firstName:'Parnavi',lastName:'Khansaheb',email:'Parnavik20@gmail.com',role:'Member',grade:'9',points:14,strikes:0,notes:''},
+  {id:'m58',firstName:'Arnav',lastName:'Yenni',email:'arnieyenni@gmail.com',role:'Member',grade:'11',points:13,strikes:0,notes:''},
+  {id:'m59',firstName:'Aadvika',lastName:'Pendayla',email:'aadvikapendayla@gmail.com',role:'Member',grade:'10',points:12,strikes:0,notes:''},
+  {id:'m60',firstName:'Avaneesh',lastName:'Prashantha',email:'avaneeshprashantha@gmail.com',role:'Member',grade:'9',points:11,strikes:0,notes:''},
+  {id:'m61',firstName:'Vaughn',lastName:'Zhao',email:'vauzha089@gmail.com',role:'Member',grade:'10',points:10,strikes:0,notes:''},
+  {id:'m62',firstName:'Tweesha',lastName:'Shah',email:'shahtweesha21@gmail.com',role:'Member',grade:'10',points:10,strikes:0,notes:''},
+  {id:'m63',firstName:'Dhara',lastName:'Dongara',email:'dhara.dongara@gmail.com',role:'Member',grade:'9',points:8,strikes:0,notes:''},
+  {id:'m64',firstName:'Naisha',lastName:'Vora',email:'naisharvora@gmail.com',role:'Member',grade:'10',points:8,strikes:0,notes:''},
+  {id:'m65',firstName:'Namish',lastName:'Kumar',email:'Namishkumar427@gmail.com',role:'Member',grade:'9',points:7,strikes:0,notes:''},
+  {id:'m66',firstName:'Willard',lastName:'Tsai',email:'wiltsa463@gmail.com',role:'Member',grade:'10',points:6,strikes:0,notes:''},
+  {id:'m67',firstName:'Ivana',lastName:'Ahmed',email:'ivanaaahmed@gmail.com',role:'Member',grade:'9',points:5,strikes:0,notes:''},
+  {id:'m68',firstName:'Homika',lastName:'Madoori',email:'homikamadoori@gmail.com',role:'Member',grade:'10',points:5,strikes:0,notes:''},
+  {id:'m69',firstName:'Sarah',lastName:'Thomas',email:'sartho772@gmail.com',role:'Member',grade:'9',points:5,strikes:0,notes:''},
+  {id:'m70',firstName:'Elizabeth',lastName:'An',email:'elizabeth.an2079@gmail.com',role:'Member',grade:'10',points:5,strikes:0,notes:''},
+  {id:'m71',firstName:'Krrish',lastName:'Jain',email:'krrish.2011jain@gmail.com',role:'Member',grade:'9',points:5,strikes:0,notes:''},
+];
+
 let allMembers: any[] = [];
-let strikeMap: Record<string, number> = {};
+let activeView: 'roster' | 'leaderboard' = 'roster';
+
+const OFFICER_ROLES = new Set(['President','Vice President','Secretary','Treasurer','Reporter','Parliamentarian','Historian','Officer']);
+
+const ROLE_COLORS: Record<string,string> = {
+  President:'badge-blue','Vice President':'badge-purple',Secretary:'badge-teal',
+  Treasurer:'badge-green',Reporter:'badge-orange',Parliamentarian:'badge-orange',
+  Historian:'badge-orange',Officer:'badge-blue',Member:'badge-gray',
+};
+
+function toast(msg: string, type = 'success') {
+  const el = document.getElementById('toast')!;
+  el.textContent = msg; el.className = `toast ${type} show`;
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
 
 function tallyMarks(n: number): string {
   if (n === 0) return '<span class="dim">—</span>';
   const groups = Math.floor(n / 5);
   const rem = n % 5;
   let svg = '';
-
   for (let g = 0; g < groups; g++) {
-    svg += `<svg width="26" height="22" viewBox="0 0 26 22" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" style="flex-shrink:0">
-      <line x1="3" y1="1" x2="3" y2="21"/>
-      <line x1="9" y1="1" x2="9" y2="21"/>
-      <line x1="15" y1="1" x2="15" y2="21"/>
-      <line x1="21" y1="1" x2="21" y2="21"/>
-      <line x1="0" y1="19" x2="26" y2="3"/>
-    </svg>`;
+    svg += `<svg width="26" height="22" viewBox="0 0 26 22" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" style="flex-shrink:0"><line x1="3" y1="1" x2="3" y2="21"/><line x1="9" y1="1" x2="9" y2="21"/><line x1="15" y1="1" x2="15" y2="21"/><line x1="21" y1="1" x2="21" y2="21"/><line x1="0" y1="19" x2="26" y2="3"/></svg>`;
   }
-
   if (rem > 0) {
     const w = 4 + rem * 6;
     svg += `<svg width="${w}" height="22" viewBox="0 0 ${w} 22" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" style="flex-shrink:0">`;
-    for (let i = 0; i < rem; i++) {
-      svg += `<line x1="${3 + i * 6}" y1="1" x2="${3 + i * 6}" y2="21"/>`;
-    }
+    for (let i = 0; i < rem; i++) svg += `<line x1="${3+i*6}" y1="1" x2="${3+i*6}" y2="21"/>`;
     svg += `</svg>`;
   }
-
-  return `<span class="tally" title="${n} strike${n !== 1 ? 's' : ''}">${svg}</span>`;
+  return `<span class="tally" title="${n} strike${n!==1?'s':''}">${svg}</span>`;
 }
 
-const ROLE_COLORS: Record<string, string> = {
-  President: 'badge-blue',
-  'Vice President': 'badge-purple',
-  Secretary: 'badge-teal',
-  Treasurer: 'badge-green',
-  Reporter: 'badge-orange',
-  Parliamentarian: 'badge-orange',
-  Historian: 'badge-orange',
-  Officer: 'badge-blue',
-  Member: 'badge-gray',
-};
-
-const OFFICER_ROLES = new Set(['President','Vice President','Secretary','Treasurer','Reporter','Parliamentarian','Historian','Officer']);
-
-function toast(msg: string, type = 'success') {
-  const el = document.getElementById('toast')!;
-  el.textContent = msg;
-  el.className = `toast ${type} show`;
-  setTimeout(() => el.classList.remove('show'), 3000);
+function pointsBadge(pts: number): string {
+  const cls = pts >= 100 ? 'pts-high' : pts >= 50 ? 'pts-mid' : 'pts-low';
+  return `<span class="pts-badge ${cls}">${pts}</span>`;
 }
 
-function renderTable(members: any[]) {
+function renderStats(members: any[]) {
+  const total = members.length;
+  const officers = members.filter(m => OFFICER_ROLES.has(m.role)).length;
+  const mems = total - officers;
+  const avg = total > 0 ? Math.round(members.reduce((s,m) => s + (m.points||0), 0) / total) : 0;
+  document.getElementById('stat-total')!.textContent = String(total);
+  document.getElementById('stat-officers')!.textContent = String(officers);
+  document.getElementById('stat-members')!.textContent = String(mems);
+  document.getElementById('stat-avg-pts')!.textContent = String(avg);
+}
+
+function memberRow(m: any): string {
+  const strikes = m.strikes || 0;
+  return `<tr${strikes > 0 ? ' class="has-strikes"' : ''}>
+    <td class="name-cell">
+      <div class="avatar">${(m.firstName?.[0]||'?')}${(m.lastName?.[0]||'')}</div>
+      <div>
+        <div style="font-weight:600;color:#1e293b">${m.firstName} ${m.lastName}</div>
+        ${m.notes ? `<div style="font-size:0.72rem;color:#94a3b8;margin-top:1px">${m.notes}</div>` : ''}
+      </div>
+    </td>
+    <td><span class="badge ${ROLE_COLORS[m.role]||'badge-gray'}">${m.role}</span></td>
+    <td class="points-cell">${pointsBadge(m.points||0)}</td>
+    <td class="strikes-cell">
+      <div class="strike-controls">
+        <button class="strike-btn strike-minus" data-id="${m.id}" title="Remove strike">−</button>
+        ${tallyMarks(strikes)}
+        <button class="strike-btn strike-plus" data-id="${m.id}" title="Add strike">+</button>
+      </div>
+    </td>
+    <td class="email-cell">${m.email ? `<a href="mailto:${m.email}" class="email-link">${m.email}</a>` : '<span class="dim">—</span>'}</td>
+    <td>${m.grade ? `${m.grade}th` : '<span class="dim">—</span>'}</td>
+    <td class="actions-cell">
+      <button class="btn-icon edit-btn" data-id="${m.id}" title="Edit">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </button>
+      <button class="btn-icon delete-btn" data-id="${m.id}" title="Delete">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      </button>
+    </td>
+  </tr>`;
+}
+
+function renderRoster(members: any[]) {
   const body = document.getElementById('roster-body')!;
   const table = document.getElementById('roster-table')!;
-  const empty = document.getElementById('empty-state')!;
-
-  document.getElementById('stat-total')!.textContent = String(members.length);
-  document.getElementById('stat-officers')!.textContent = String(members.filter(m => OFFICER_ROLES.has(m.role)).length);
-  document.getElementById('stat-members')!.textContent = String(members.filter(m => m.role === 'Member').length);
-
-  if (members.length === 0) {
-    table.style.display = 'none';
-    empty.style.display = 'block';
-    return;
-  }
-  empty.style.display = 'none';
   table.style.display = 'table';
 
-  body.innerHTML = members.map(m => {
-    const strikes = getStrikes(m);
-    const hasStrikes = strikes > 0;
-    return `<tr${hasStrikes ? ' class="has-strikes"' : ''}>
+  if (members.length === 0) {
+    body.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:3rem">No members match your search</td></tr>';
+    return;
+  }
+
+  const officers = members.filter(m => OFFICER_ROLES.has(m.role));
+  const regularMembers = members.filter(m => !OFFICER_ROLES.has(m.role)).sort((a,b) => (b.points||0) - (a.points||0));
+
+  let html = '';
+
+  if (officers.length > 0) {
+    html += `<tr class="section-header"><td colspan="7"><div class="section-label">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1e3a8a" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      Officers <span class="section-count">${officers.length}</span>
+    </div></td></tr>`;
+    html += officers.map(m => memberRow(m)).join('');
+  }
+
+  if (regularMembers.length > 0) {
+    html += `<tr class="section-header"><td colspan="7"><div class="section-label">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+      Members <span class="section-count">${regularMembers.length}</span>
+    </div></td></tr>`;
+    html += regularMembers.map(m => memberRow(m)).join('');
+  }
+
+  body.innerHTML = html;
+  bindRowButtons(body);
+}
+
+function renderLeaderboard(members: any[]) {
+  const sorted = [...members].sort((a,b) => (b.points||0) - (a.points||0));
+  const maxPts = sorted[0]?.points || 1;
+
+  const podium = document.getElementById('podium')!;
+  const top3 = sorted.slice(0, 3);
+  const medals = ['\u{1F947}','\u{1F948}','\u{1F949}'];
+  const pColors = [
+    {bg:'linear-gradient(135deg,#fef9c3,#fde68a)',border:'#f59e0b',text:'#92400e'},
+    {bg:'linear-gradient(135deg,#f1f5f9,#e2e8f0)',border:'#94a3b8',text:'#475569'},
+    {bg:'linear-gradient(135deg,#fed7aa,#fdba74)',border:'#f97316',text:'#9a3412'},
+  ];
+
+  podium.innerHTML = top3.map((m,i) => `
+    <div class="podium-card" style="background:${pColors[i].bg};border-color:${pColors[i].border}">
+      <div class="podium-medal">${medals[i]}</div>
+      <div class="podium-rank" style="color:${pColors[i].text}">#${i+1}</div>
+      <div class="podium-avatar">${(m.firstName?.[0]||'')}${(m.lastName?.[0]||'')}</div>
+      <div class="podium-name">${m.firstName} ${m.lastName}</div>
+      <span class="badge ${ROLE_COLORS[m.role]||'badge-gray'}" style="font-size:0.7rem">${m.role}</span>
+      <div class="podium-pts" style="color:${pColors[i].text}">${m.points||0} pts</div>
+      <div class="podium-bar"><div class="podium-bar-fill" style="width:${((m.points||0)/maxPts*100)}%;background:${pColors[i].border}"></div></div>
+    </div>
+  `).join('');
+
+  const body = document.getElementById('lb-body')!;
+  body.innerHTML = sorted.slice(3).map((m,i) => {
+    const rank = i + 4;
+    const pct = ((m.points||0)/maxPts*100);
+    const strikes = m.strikes || 0;
+    return `<tr${strikes > 0 ? ' class="has-strikes"' : ''}>
+      <td class="rank-cell"><span class="rank-num">${rank}</span></td>
       <td class="name-cell">
-        <div class="avatar">${(m.firstName?.[0] || '?')}${(m.lastName?.[0] || '')}</div>
-        <span>${m.firstName} ${m.lastName}</span>
+        <div class="avatar">${(m.firstName?.[0]||'?')}${(m.lastName?.[0]||'')}</div>
+        <div>
+          <span style="font-weight:600;color:#1e293b">${m.firstName} ${m.lastName}</span>
+          ${strikes > 0 ? `<span style="color:#dc2626;font-size:0.72rem;margin-left:0.4rem">${strikes} strike${strikes>1?'s':''}</span>` : ''}
+        </div>
       </td>
-      <td><span class="badge ${ROLE_COLORS[m.role] || 'badge-gray'}">${m.role}</span></td>
-      <td class="strikes-cell">${tallyMarks(strikes)}</td>
-      <td class="email-cell">${m.email ? `<a href="mailto:${m.email}" class="email-link">${m.email}</a>` : '<span class="dim">—</span>'}</td>
-      <td>${m.grade ? `${m.grade}th` : '<span class="dim">—</span>'}</td>
-      <td class="notes-cell">${m.notes || '<span class="dim">—</span>'}</td>
-      <td class="actions-cell">
-        <button class="btn-icon edit-btn" data-id="${m.id}" title="Edit">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-        </button>
-        <button class="btn-icon delete-btn" data-id="${m.id}" title="Delete">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-        </button>
+      <td class="lb-pts-cell">
+        <div class="lb-pts-wrap">
+          <span class="lb-pts-num">${m.points||0}</span>
+          <div class="lb-pts-bar"><div class="lb-pts-fill" style="width:${pct}%"></div></div>
+        </div>
       </td>
+      <td><span class="badge ${ROLE_COLORS[m.role]||'badge-gray'}">${m.role}</span></td>
     </tr>`;
   }).join('');
+}
 
-  body.querySelectorAll('.edit-btn').forEach(btn => btn.addEventListener('click', () => openEdit((btn as HTMLElement).dataset.id!)));
-  body.querySelectorAll('.delete-btn').forEach(btn => btn.addEventListener('click', () => deleteMember((btn as HTMLElement).dataset.id!)));
+function bindRowButtons(container: HTMLElement) {
+  container.querySelectorAll('.edit-btn').forEach(btn => btn.addEventListener('click', () => openEdit((btn as HTMLElement).dataset.id!)));
+  container.querySelectorAll('.delete-btn').forEach(btn => btn.addEventListener('click', () => deleteMember((btn as HTMLElement).dataset.id!)));
+  container.querySelectorAll('.strike-plus').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); adjustStrike((btn as HTMLElement).dataset.id!, 1); }));
+  container.querySelectorAll('.strike-minus').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); adjustStrike((btn as HTMLElement).dataset.id!, -1); }));
 }
 
 function applyFilters() {
@@ -239,47 +424,68 @@ function applyFilters() {
   const role = (document.getElementById('role-filter') as HTMLSelectElement).value;
   const filtered = allMembers.filter(m => {
     const name = `${m.firstName} ${m.lastName}`.toLowerCase();
-    const matchQ = !q || name.includes(q) || (m.email || '').toLowerCase().includes(q);
+    const matchQ = !q || name.includes(q) || (m.email||'').toLowerCase().includes(q);
     const matchRole = !role || m.role === role;
     return matchQ && matchRole;
   });
-  renderTable(filtered);
+  renderStats(filtered);
+  if (activeView === 'roster') renderRoster(filtered);
+  else renderLeaderboard(filtered);
 }
 
 async function load() {
   const loading = document.getElementById('loading-state')!;
   try {
-    const [rosterRes, strikesRes] = await Promise.all([
-      fetch(API, { headers }),
-      fetch(`${API_BASE}?resource=strikes`, { headers }),
-    ]);
+    const rosterRes = await fetch(API, { headers });
     const rosterData = await rosterRes.json();
-    const strikesData = await strikesRes.json();
-
-    // Build strike map: match by full name or first name
-    strikeMap = {};
-    (strikesData.items || []).forEach((s: any) => {
-      if (s.officerName && s.count > 0) strikeMap[s.officerName] = s.count;
-    });
-
-    allMembers = (rosterData.items || []).sort((a: any, b: any) => {
-      const aOff = OFFICER_ROLES.has(a.role);
-      const bOff = OFFICER_ROLES.has(b.role);
-      if (aOff !== bOff) return aOff ? -1 : 1;
-      return `${a.lastName}${a.firstName}`.localeCompare(`${b.lastName}${b.firstName}`);
-    });
-    loading.style.display = 'none';
-    applyFilters();
+    if ((rosterData.items || []).length > 0) {
+      allMembers = rosterData.items;
+    } else {
+      allMembers = [...DEMO_MEMBERS];
+    }
   } catch {
-    loading.innerHTML = '<p style="color:#dc2626">Failed to load roster.</p>';
+    allMembers = [...DEMO_MEMBERS];
   }
+
+  allMembers.sort((a: any, b: any) => {
+    const aOff = OFFICER_ROLES.has(a.role);
+    const bOff = OFFICER_ROLES.has(b.role);
+    if (aOff !== bOff) return aOff ? -1 : 1;
+    return `${a.lastName}${a.firstName}`.localeCompare(`${b.lastName}${b.firstName}`);
+  });
+
+  loading.style.display = 'none';
+  applyFilters();
 }
 
-function getStrikes(m: any): number {
-  const fullName = `${m.firstName} ${m.lastName}`;
-  // try full name first, then first name only (for tasks created before roster)
-  return strikeMap[fullName] ?? strikeMap[m.firstName] ?? 0;
+function adjustStrike(id: string, delta: number) {
+  const m = allMembers.find(x => x.id === id);
+  if (!m) return;
+  const newStrikes = Math.max(0, (m.strikes||0) + delta);
+  if (newStrikes === m.strikes) return;
+  m.strikes = newStrikes;
+  m.points = Math.max(0, (m.points||0) + (delta > 0 ? -25 : 25));
+  applyFilters();
+  toast(delta > 0 ? `Strike added to ${m.firstName} ${m.lastName}` : `Strike removed from ${m.firstName} ${m.lastName}`);
+  fetch(`${API_BASE}?resource=strikes`, {
+    method: 'POST', headers,
+    body: JSON.stringify({ officerName: `${m.firstName} ${m.lastName}`, count: newStrikes, history: [] }),
+  }).catch(() => {});
 }
+
+// View toggle
+document.getElementById('view-toggle')!.addEventListener('click', () => {
+  activeView = activeView === 'roster' ? 'leaderboard' : 'roster';
+  document.getElementById('roster-view')!.style.display = activeView === 'roster' ? '' : 'none';
+  document.getElementById('leaderboard-view')!.style.display = activeView === 'leaderboard' ? '' : 'none';
+  const btn = document.getElementById('view-toggle')!;
+  if (activeView === 'roster') {
+    btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> Leaderboard';
+  } else {
+    btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg> Roster';
+  }
+  applyFilters();
+});
 
 // Modal
 const modal = document.getElementById('modal')!;
@@ -292,12 +498,10 @@ const fEmail = document.getElementById('f-email') as HTMLInputElement;
 const fNotes = document.getElementById('f-notes') as HTMLInputElement;
 
 function openAdd() {
-  editId.value = '';
-  fFirst.value = ''; fLast.value = ''; fRole.value = 'Member';
+  editId.value = ''; fFirst.value = ''; fLast.value = ''; fRole.value = 'Member';
   fGrade.value = ''; fEmail.value = ''; fNotes.value = '';
   document.getElementById('modal-title')!.textContent = 'Add Member';
-  modal.classList.add('open');
-  fFirst.focus();
+  modal.classList.add('open'); fFirst.focus();
 }
 
 function openEdit(id: string) {
@@ -324,32 +528,41 @@ modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
 document.getElementById('modal-save')!.addEventListener('click', async () => {
   const firstName = fFirst.value.trim();
   const lastName = fLast.value.trim();
-  if (!firstName || !lastName) { toast('First and last name are required.', 'error'); return; }
+  if (!firstName || !lastName) { toast('First and last name required', 'error'); return; }
 
   const body = { firstName, lastName, role: fRole.value, grade: fGrade.value, email: fEmail.value.trim(), notes: fNotes.value.trim() };
   const id = editId.value;
 
-  const res = await fetch(API, {
-    method: id ? 'PUT' : 'POST',
-    headers,
-    body: JSON.stringify(id ? { id, ...body } : body),
-  });
-
-  if (res.ok) {
-    toast(id ? 'Member updated.' : 'Member added.');
-    closeModal();
-    load();
+  if (id) {
+    const m = allMembers.find(x => x.id === id);
+    if (m) Object.assign(m, body);
   } else {
-    toast('Something went wrong.', 'error');
+    allMembers.push({ ...body, id: 'new-' + Date.now(), points: 0, strikes: 0 });
   }
+
+  closeModal();
+  allMembers.sort((a: any, b: any) => {
+    const aOff = OFFICER_ROLES.has(a.role);
+    const bOff = OFFICER_ROLES.has(b.role);
+    if (aOff !== bOff) return aOff ? -1 : 1;
+    return `${a.lastName}${a.firstName}`.localeCompare(`${b.lastName}${b.firstName}`);
+  });
+  applyFilters();
+  toast(id ? 'Member updated' : 'Member added');
+
+  fetch(API, {
+    method: id ? 'PUT' : 'POST', headers,
+    body: JSON.stringify(id ? { id, ...body } : body),
+  }).catch(() => {});
 });
 
 async function deleteMember(id: string) {
   const m = allMembers.find(x => x.id === id);
-  if (!confirm(`Remove ${m?.firstName} ${m?.lastName} from the roster?`)) return;
-  const res = await fetch(API, { method: 'DELETE', headers, body: JSON.stringify({ id }) });
-  if (res.ok) { toast('Member removed.'); load(); }
-  else toast('Delete failed.', 'error');
+  if (!confirm(`Remove ${m?.firstName} ${m?.lastName}?`)) return;
+  allMembers = allMembers.filter(x => x.id !== id);
+  applyFilters();
+  toast('Member removed');
+  fetch(API, { method: 'DELETE', headers, body: JSON.stringify({ id }) }).catch(() => {});
 }
 
 document.getElementById('search-input')!.addEventListener('input', applyFilters);
@@ -358,82 +571,99 @@ document.getElementById('role-filter')!.addEventListener('change', applyFilters)
 load();
 </script>
 
-<style>
-.search-wrap {
-  position: relative; display: flex; align-items: center;
-}
-.search-wrap svg { position: absolute; left: 0.75rem; color: #94a3b8; pointer-events: none; }
-.search-input {
-  padding: 0.55rem 0.875rem 0.55rem 2.25rem;
-  border: 1.5px solid #e2e8f0; border-radius: 8px;
-  font-size: 0.875rem; color: #1e293b; background: white;
-  width: 220px; transition: border-color 0.15s;
-}
-.search-input:focus { outline: none; border-color: #3b82f6; }
-.filter-select {
-  padding: 0.55rem 0.875rem; border: 1.5px solid #e2e8f0; border-radius: 8px;
-  font-size: 0.875rem; color: #374151; background: white; cursor: pointer;
-}
-.filter-select:focus { outline: none; border-color: #3b82f6; }
+<style is:global>
+.search-wrap { position:relative; display:flex; align-items:center; }
+.search-wrap svg { position:absolute; left:0.75rem; color:#94a3b8; pointer-events:none; }
+.search-input { padding:0.55rem 0.875rem 0.55rem 2.25rem; border:1.5px solid #e2e8f0; border-radius:8px; font-size:0.875rem; color:#1e293b; background:white; width:220px; transition:border-color 0.15s; }
+.search-input:focus { outline:none; border-color:#3b82f6; }
+.filter-select { padding:0.55rem 0.875rem; border:1.5px solid #e2e8f0; border-radius:8px; font-size:0.875rem; color:#374151; background:white; cursor:pointer; }
+.filter-select:focus { outline:none; border-color:#3b82f6; }
 
-.roster-stats {
-  display: flex; gap: 0.5rem; margin-bottom: 1.25rem; flex-wrap: wrap;
-}
-.stat-pill {
-  padding: 0.35rem 0.875rem; border-radius: 50px;
-  font-size: 0.8rem; font-weight: 600;
-  background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0;
-}
-.stat-pill span { font-weight: 700; color: #0f172a; }
-.stat-pill.officer { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
-.stat-pill.officer span { color: #1e3a8a; }
-.stat-pill.member { background: #f0fdf4; color: #15803d; border-color: #bbf7d0; }
-.stat-pill.member span { color: #166534; }
+.roster-stats { display:flex; gap:0.5rem; margin-bottom:1rem; flex-wrap:wrap; }
+.stat-pill { padding:0.35rem 0.875rem; border-radius:50px; font-size:0.8rem; font-weight:600; background:#f1f5f9; color:#475569; border:1px solid #e2e8f0; }
+.stat-pill span { font-weight:700; color:#0f172a; }
+.stat-pill.officer { background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; }
+.stat-pill.officer span { color:#1e3a8a; }
+.stat-pill.member { background:#f0fdf4; color:#15803d; border-color:#bbf7d0; }
+.stat-pill.member span { color:#166534; }
+.stat-pill.points-pill { background:#fffbeb; color:#b45309; border-color:#fde68a; }
+.stat-pill.points-pill span { color:#92400e; }
 
-.roster-table {
-  width: 100%; border-collapse: collapse; font-size: 0.875rem;
-}
-.roster-table thead tr {
-  background: #f8fafc; border-bottom: 1px solid #e2e8f0;
-}
-.roster-table th {
-  padding: 0.875rem 1.25rem; text-align: left;
-  font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 0.05em; color: #64748b;
-}
-.roster-table tbody tr {
-  border-bottom: 1px solid #f1f5f9; transition: background 0.1s;
-}
-.roster-table tbody tr:last-child { border-bottom: none; }
-.roster-table tbody tr:hover { background: #f8fafc; }
-.roster-table td { padding: 0.875rem 1.25rem; color: #374151; }
+.points-legend-bar { display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap; padding:0.6rem 1rem; background:white; border:1px solid #e2e8f0; border-radius:10px; margin-bottom:1.5rem; font-size:0.75rem; }
+.plb-label { font-weight:700; color:#374151; }
+.plb-item { padding:0.15rem 0.5rem; border-radius:50px; font-weight:600; }
+.plb-item.green { background:#f0fdf4; color:#15803d; }
+.plb-item.gold { background:#fffbeb; color:#b45309; }
+.plb-item.blue { background:#eff6ff; color:#1d4ed8; }
+.plb-item.purple { background:#faf5ff; color:#7c3aed; }
+.plb-item.teal { background:#f0fdfa; color:#0f766e; }
+.plb-item.red { background:#fef2f2; color:#dc2626; }
 
-.name-cell { display: flex; align-items: center; gap: 0.75rem; }
-.avatar {
-  width: 34px; height: 34px; border-radius: 50%;
-  background: linear-gradient(135deg, #1e3a8a, #3b82f6);
-  color: white; font-size: 0.72rem; font-weight: 700;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0; letter-spacing: 0.02em;
-}
-.email-link { color: #3b82f6; text-decoration: none; }
-.email-link:hover { text-decoration: underline; }
-.email-cell { max-width: 240px; }
-.notes-cell { max-width: 200px; color: #64748b; font-size: 0.82rem; }
-.actions-cell { white-space: nowrap; }
-.dim { color: #d1d5db; }
+.roster-table { width:100%; border-collapse:collapse; font-size:0.875rem; }
+.roster-table thead tr { background:#f8fafc; border-bottom:1px solid #e2e8f0; }
+.roster-table th { padding:0.875rem 1.25rem; text-align:left; font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:#64748b; }
+.roster-table tbody tr { border-bottom:1px solid #f1f5f9; transition:background 0.1s; }
+.roster-table tbody tr:last-child { border-bottom:none; }
+.roster-table tbody tr:hover { background:#f8fafc; }
+.roster-table td { padding:0.875rem 1.25rem; color:#374151; }
 
-.delete-btn:hover { border-color: #fecaca !important; color: #dc2626 !important; background: #fef2f2 !important; }
+.section-header td { padding:0 !important; background:#fafafa !important; }
+.section-header:hover { background:#fafafa !important; }
+.section-label { display:flex; align-items:center; gap:0.5rem; padding:0.6rem 1.25rem; font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:#475569; border-bottom:1px solid #e2e8f0; border-top:1px solid #e2e8f0; }
+.section-label svg { flex-shrink:0; }
+.section-count { background:#e2e8f0; color:#475569; padding:0.05rem 0.45rem; border-radius:50px; font-size:0.65rem; }
 
-.strikes-cell { white-space: nowrap; }
-.tally { display: inline-flex; align-items: center; gap: 4px; }
-.has-strikes { background: #fff9f9; }
-.has-strikes .strikes-cell { background: #fef2f2; }
+.name-cell { display:flex; align-items:center; gap:0.75rem; }
+.avatar { width:34px; height:34px; border-radius:50%; background:linear-gradient(135deg,#1e3a8a,#3b82f6); color:white; font-size:0.72rem; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; letter-spacing:0.02em; }
+.email-link { color:#3b82f6; text-decoration:none; }
+.email-link:hover { text-decoration:underline; }
+.email-cell { max-width:240px; }
+.actions-cell { white-space:nowrap; }
+.dim { color:#d1d5db; }
+
+.points-cell { white-space:nowrap; }
+.pts-badge { display:inline-flex; align-items:center; justify-content:center; min-width:42px; padding:0.2rem 0.6rem; border-radius:50px; font-size:0.8rem; font-weight:700; }
+.pts-high { background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; }
+.pts-mid { background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; }
+.pts-low { background:#f8fafc; color:#64748b; border:1px solid #e2e8f0; }
+
+.strikes-cell { white-space:nowrap; }
+.strike-controls { display:flex; align-items:center; gap:4px; }
+.strike-btn { width:22px; height:22px; border-radius:50%; border:1px solid #e2e8f0; background:white; color:#94a3b8; font-size:0.9rem; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; opacity:0; transition:all 0.15s; line-height:1; padding:0; }
+tr:hover .strike-btn { opacity:1; }
+.strike-btn:hover { background:#fef2f2; color:#dc2626; border-color:#fecaca; }
+.tally { display:inline-flex; align-items:center; gap:4px; }
+.has-strikes { background:#fff9f9; }
+.has-strikes .strikes-cell { background:#fef2f2; }
+.delete-btn:hover { border-color:#fecaca !important; color:#dc2626 !important; background:#fef2f2 !important; }
+
+/* Leaderboard podium */
+.podium-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; }
+.podium-card { border:2px solid; border-radius:16px; padding:1.5rem; text-align:center; display:flex; flex-direction:column; align-items:center; gap:0.35rem; transition:transform 0.2s; }
+.podium-card:hover { transform:translateY(-4px); }
+.podium-medal { font-size:2.2rem; line-height:1; }
+.podium-rank { font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; }
+.podium-avatar { width:56px; height:56px; border-radius:50%; background:linear-gradient(135deg,#1e3a8a,#3b82f6); color:white; font-size:1.1rem; font-weight:700; display:flex; align-items:center; justify-content:center; margin:0.25rem 0; }
+.podium-name { font-size:1rem; font-weight:700; color:#0f172a; }
+.podium-pts { font-size:1.5rem; font-weight:800; margin-top:0.2rem; }
+.podium-bar { width:100%; height:6px; background:#e2e8f0; border-radius:3px; overflow:hidden; margin-top:0.5rem; }
+.podium-bar-fill { height:100%; border-radius:3px; transition:width 0.6s ease; }
+
+/* Leaderboard table */
+.rank-cell { text-align:center; }
+.rank-num { display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:50%; background:#f1f5f9; color:#475569; font-size:0.8rem; font-weight:700; }
+.lb-pts-cell { min-width:180px; }
+.lb-pts-wrap { display:flex; align-items:center; gap:0.6rem; }
+.lb-pts-num { font-weight:700; color:#1e293b; min-width:35px; }
+.lb-pts-bar { flex:1; height:8px; background:#f1f5f9; border-radius:4px; overflow:hidden; }
+.lb-pts-fill { height:100%; background:linear-gradient(90deg,#3b82f6,#1e3a8a); border-radius:4px; transition:width 0.6s ease; }
 
 @media (max-width: 900px) {
-  .page-header { flex-direction: column; align-items: flex-start; gap: 1rem; }
-  .page-header > div:last-child { flex-wrap: wrap; }
-  .search-input { width: 160px; }
-  .email-cell, .notes-cell { display: none; }
+  .page-header { flex-direction:column; align-items:flex-start; gap:1rem; }
+  .page-header > div:last-child { flex-wrap:wrap; }
+  .search-input { width:160px; }
+  .email-cell { display:none; }
+  .podium-grid { grid-template-columns:1fr; }
+  .lb-pts-cell { min-width:120px; }
 }
 </style>

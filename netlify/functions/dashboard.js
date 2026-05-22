@@ -47,7 +47,7 @@ const CORS = {
   'Content-Type': 'application/json',
 };
 
-const RESOURCES = ['minutes', 'tasks', 'strikes', 'events', 'awards', 'roster'];
+const RESOURCES = ['minutes', 'tasks', 'strikes', 'events', 'awards', 'roster', 'website-resources', 'slc-trips', 'budget-entries', 'points'];
 
 function checkAuth(event) {
   const auth = event.headers.authorization || '';

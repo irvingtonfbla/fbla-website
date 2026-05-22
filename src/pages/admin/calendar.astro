@@ -116,8 +116,8 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
           <label class="form-label">Description</label>
           <textarea class="form-control" id="event-desc" rows="3" placeholder="Optional notes about this event…"></textarea>
         </div>
-        <div class="form-group" id="meeting-notes-group" style="display:none">
-          <label class="form-label">Meeting Notes <span style="color:#94a3b8;font-weight:400">(Officer meetings only)</span></label>
+        <div class="form-group" id="meeting-notes-group">
+          <label class="form-label">Meeting Notes</label>
           <textarea class="form-control" id="event-notes" rows="4" placeholder="Agenda, decisions made, action items…"></textarea>
         </div>
         <div class="modal-actions">
@@ -171,18 +171,30 @@ function extractUrl(text: string): string | null {
 }
 
 function updateNotesVisibility() {
-  const type = (document.getElementById('event-type') as HTMLSelectElement).value;
   const group = document.getElementById('meeting-notes-group')!;
-  group.style.display = type === 'officer' ? '' : 'none';
+  group.style.display = '';
 }
 
 document.getElementById('event-type')?.addEventListener('change', updateNotesVisibility);
 
+const DEMO_EVENTS: any[] = [
+  {id:'demo-1',title:'CTE Meeting',type:'event',startDate:'2026-05-22',endDate:null,meetingLink:'https://meet.google.com/abc-defg-hij',description:'Weekly CTE club meeting. All members welcome!',meetingNotes:'Agenda:\n1. Competition updates\n2. Upcoming fundraiser planning\n3. SLC trip logistics\n4. Member spotlight\n5. Q&A',canvaLink:'https://www.canva.com/design/example/slides'},
+  {id:'demo-2',title:'Officer Meeting',type:'officer',startDate:'2026-05-24',endDate:null,meetingLink:'https://meet.google.com/xyz-uvwx-yz',description:'Weekly officer sync — 9:00 PM',meetingNotes:'Officer Meeting Minutes — May 24, 2026\n\nAttendees: Rahul, Naina, Advika, Eva, Amol, Neel, Lehana, Zachary, Stefanie\n\nAgenda:\n1. SLC Conference debrief — 8 students attended, 3 placed\n2. Budget review — $10,542 remaining balance\n3. End-of-year banquet planning — June 5th\n4. Officer elections timeline for next year\n5. Summer workshop planning\n\nAction Items:\n- Rahul: Finalize banquet venue by May 28\n- Eva: Submit final budget report\n- Advika: Send competition results to newsletter\n- Amol: Post SLC recap on Instagram'},
+  {id:'demo-3',title:'FBLA National Leadership Conference',type:'conference',startDate:'2026-06-01',endDate:'2026-06-05',meetingLink:null,description:'Annual NLC in Orlando, FL. 8 members + 2 advisers attending.',meetingNotes:null},
+  {id:'demo-4',title:'LOOP Session — Public Speaking',type:'loop',startDate:'2026-05-21',endDate:null,meetingLink:'https://meet.google.com/loop-sess-ion',description:'Practice session: Impromptu Speaking & Public Speaking events. Bring prepared notes.',meetingNotes:null},
+  {id:'demo-5',title:'Bake Sale Fundraiser',type:'fundraiser',startDate:'2026-05-23',endDate:null,meetingLink:null,description:'Location: School quad, 11 AM – 2 PM. All proceeds go toward NLC travel fund. Volunteers needed for setup at 10:30 AM.',meetingNotes:null},
+  {id:'demo-6',title:'LOOP Session — Spreadsheets',type:'loop',startDate:'2026-05-28',endDate:null,meetingLink:'https://meet.google.com/loop-sprd-sht',description:'Hands-on practice with spreadsheet applications for competition.',meetingNotes:null},
+  {id:'demo-7',title:'End-of-Year Banquet',type:'event',startDate:'2026-06-05',endDate:null,meetingLink:null,description:'Annual awards banquet — 6:00 PM at the community center. Awards ceremony, officer transitions, and celebration dinner.',meetingNotes:null},
+  {id:'demo-8',title:'IRL Study Session',type:'irl',startDate:'2026-05-20',endDate:null,meetingLink:null,description:'In-person study session at the school library, Room 204. Focus: Business Plan and Financial Literacy events.',meetingNotes:null},
+  {id:'demo-9',title:'Bay Section Conference',type:'conference',startDate:'2026-05-17',endDate:null,meetingLink:null,description:'Bay Section Spring Conference at San Jose Convention Center. Registration opens at 8 AM.',meetingNotes:null},
+  {id:'demo-10',title:'Car Wash Fundraiser',type:'fundraiser',startDate:'2026-05-30',endDate:null,meetingLink:null,description:'Car wash in the school parking lot, 10 AM – 3 PM. $10 per car. All funds for next year\'s chapter activities.',meetingNotes:null},
+];
+
 let allEvents: any[] = [];
-let allMeetings: any[] = [];  // CTE/Non-CTE tasks → shown as calendar events
-let allDeadlines: any[] = []; // other tasks with deadlines → shown as "N due" badge
-let currentYear = new Date().getFullYear();
-let currentMonth = new Date().getMonth();
+let allMeetings: any[] = [];
+let allDeadlines: any[] = [];
+let currentYear = 2026;
+let currentMonth = 4; // May (0-indexed)
 let selectedDay: string | null = null;
 let editingId: string | null = null;
 
@@ -211,7 +223,8 @@ async function loadEvents() {
     fetch(`${API}?resource=tasks`, { headers: h() }),
     fetch('/.netlify/functions/sheets-tasks', { headers: h() }).catch(() => null),
   ]);
-  allEvents = ((await evRes.json()).items || []);
+  const evItems = ((await evRes.json()).items || []);
+  allEvents = evItems.length > 0 ? evItems : DEMO_EVENTS;
 
   const blobTasks = (await taskRes.json()).items || [];
   let sheetTasks: any[] = [];
@@ -327,7 +340,12 @@ function renderEventList(day?: string | null) {
                             .sort((a,b) => normalizeDeadline(a.deadline).localeCompare(normalizeDeadline(b.deadline)));
   }
 
-  const eventHtml = events.length ? events.map(e => `
+  const eventHtml = events.length ? events.map(e => {
+    const descUrl = extractUrl(e.description || '');
+    const isCanvaDesc = descUrl && descUrl.includes('canva.com');
+    const canvaUrl = e.canvaLink || (isCanvaDesc ? descUrl : null);
+    const cleanDesc = e.description && descUrl ? e.description.replace(descUrl, '').trim() : e.description;
+    return `
     <div class="event-row" data-id="${e.id}">
       <div class="event-color-bar" style="background:${TYPE_COLORS[e.type]||'#94a3b8'}"></div>
       <div class="event-row-body">
@@ -336,8 +354,9 @@ function renderEventList(day?: string | null) {
           <span>${fmtDate(e.startDate)}${e.endDate && e.endDate !== e.startDate ? ' → ' + fmtDate(e.endDate) : ''}</span>
           <span class="badge" style="background:${TYPE_COLORS[e.type]||'#f1f5f9'}20;color:${TYPE_COLORS[e.type]||'#64748b'}">${TYPE_LABELS[e.type]||e.type}</span>
         </div>
-        ${e.description ? `<div class="event-row-desc">${e.description}</div>` : ''}
-        ${e.type === 'officer' && e.meetingNotes ? `<div class="event-notes-preview">${e.meetingNotes.slice(0,120)}${e.meetingNotes.length > 120 ? '…' : ''}</div>` : ''}
+        ${cleanDesc ? `<div class="event-row-desc">${cleanDesc}</div>` : ''}
+        ${e.meetingNotes ? `<div class="event-notes-preview">${e.meetingNotes.slice(0,200)}${e.meetingNotes.length > 200 ? '…' : ''}</div>` : ''}
+        ${canvaUrl ? `<div style="margin-top:0.35rem"><a href="${canvaUrl}" target="_blank" rel="noopener" class="link-btn canva"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/></svg> View Slides</a></div>` : ''}
       </div>
       <div class="event-row-actions">
         ${e.meetingLink ? `<a href="${e.meetingLink}" target="_blank" class="btn btn-secondary btn-sm">Join</a>` : ''}
@@ -345,8 +364,8 @@ function renderEventList(day?: string | null) {
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         </button>
       </div>
-    </div>
-  `).join('') : '';
+    </div>`;
+  }).join('') : '';
 
   // Meeting schedule tasks rendered as event-style rows
   const meetingHtml = meetings.length ? meetings.map(t => {
@@ -479,7 +498,7 @@ document.getElementById('save-event-btn')?.addEventListener('click', async () =>
 
   if (!title || !startDate) { toast('Title and start date are required', 'error'); return; }
 
-  const payload: any = { title, type, startDate, endDate: endDate || null, meetingLink: meetingLink || null, description: description || null, meetingNotes: (type === 'officer' && notes) ? notes : null };
+  const payload: any = { title, type, startDate, endDate: endDate || null, meetingLink: meetingLink || null, description: description || null, meetingNotes: notes || null };
   const btn = document.getElementById('save-event-btn') as HTMLButtonElement;
   btn.textContent = 'Saving…'; btn.disabled = true;
 
@@ -492,8 +511,7 @@ document.getElementById('save-event-btn')?.addEventListener('click', async () =>
     }
     if (!res.ok) throw new Error(await res.text());
 
-    // Auto-save meeting notes as a minutes entry for officer meetings
-    if (type === 'officer' && notes) {
+    if (notes) {
       const minutesPayload = { title, date: startDate, type: 'officer', content: notes };
       if (editingId) {
         // Try to find existing minutes entry linked to this event; just POST a new/update

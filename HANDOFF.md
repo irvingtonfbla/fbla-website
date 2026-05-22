@@ -33,12 +33,12 @@ A full officer admin dashboard layered on top of the existing Astro 5 / Netlify 
 | File | URL | Purpose |
 |---|---|---|
 | `src/pages/admin/index.astro` | `/admin` | Login gate + tool card grid. **Auto-authenticates on localhost** (no password needed for local dev). |
-| `src/pages/admin/dashboard.astro` | `/admin/dashboard` | Overview hub: stats, upcoming events, open tasks, strike leaderboard. |
-| `src/pages/admin/calendar.astro` | `/admin/calendar` | Monthly calendar. Color-coded dots for events + sky-blue dots for CTE/Non-CTE meeting schedule tasks. Clicking a day shows events, meeting schedule tasks (with clickable Canva/URL links), and other task deadlines. "N due" badge on cells with regular deadlines. Upcoming sidebar shows next 14 days of meetings and deadlines. |
+| `src/pages/admin/dashboard.astro` | `/admin/dashboard` | Overview hub: stats (events, open tasks, overdue, minutes), upcoming events with type badges and Join buttons, open tasks list, recent minutes, strike board. Demo data embedded as fallback for presentation mode. |
+| `src/pages/admin/calendar.astro` | `/admin/calendar` | Monthly calendar. Color-coded dots for events + sky-blue dots for CTE/Non-CTE meeting schedule tasks. Clicking a day shows events, meeting schedule tasks (with clickable Canva/URL links), and other task deadlines. "N due" badge on cells with regular deadlines. Upcoming sidebar shows next 14 days of meetings and deadlines. Meeting notes field available for all event types (not just officer meetings). Canva slide links render as purple "View Slides" buttons. Demo events embedded (CTE meetings, officer meetings, LOOP sessions, fundraisers, 5-day conference). |
 | `src/pages/admin/tasks.astro` | `/admin/tasks` | Spreadsheet-style inline table. Dept tabs at top. Columns: Status · Task + description · Officers · Deadline · Edit. Status dropdown updates instantly (optimistic) for all tasks. Sheet tasks save status overrides to Blobs (see below). Blob tasks get a pencil edit button on hover. Sort: Missed → In Progress → Not Started → Done. |
-| `src/pages/admin/roster.astro` | `/admin/roster` | All FBLA members for the year. Fields: name, role, email, grade, notes. **Strikes column** shows SVG tally marks (groups of 5 with diagonal). Strike data loaded in parallel — matched by full name first, then first name alone. |
-| `src/pages/admin/budget.astro` | `/admin/budget` | Full budget dashboard. Tab bar for multi-tab sheets. Stats row (total revenue, expenses, balance, line item count). Bar chart (estimated vs actual per expense item, red bars when over budget) + doughnut chart (expense breakdown). Searchable expense table with all sheet columns. Revenue table (hidden if empty). SLC trip tracker cards (CRUD via Blobs `slc-trips`). Export CSV. Live data from `sheets-budget.js`. |
-| `src/pages/admin/edit-website.astro` | `/admin/edit-website` | Manage Drive resource links for the public site. CRUD for `website-resources` Blobs resource — paste a Google Drive URL + label + category and it shows as a clickable card grouped by category. Gallery manager is a placeholder (not yet wired to GitHub API). |
+| `src/pages/admin/roster.astro` | `/admin/roster` | All 72 FBLA members (9 officers + 63 members). Two views: **Roster** (table with officer/member section headers, strike +/- buttons on hover) and **Leaderboard** (podium top 3 + ranked table). Points system tracks CTE meetings (+10), wins (+50), competing (+20), engagement (+5), recruiting (+15), strikes (−25). Demo data embedded as fallback. |
+| `src/pages/admin/budget.astro` | `/admin/budget` | Full budget dashboard. Tab bar for multi-tab sheets. Stats row (total revenue, expenses, balance, line item count). Bar chart (estimated vs actual per expense item, red bars when over budget) + doughnut chart (expense breakdown). Searchable expense table with all sheet columns. Revenue table. SLC trip tracker cards (CRUD via Blobs `slc-trips`). **Grants & Funding Sources** section with Chart.js pie chart, grant item cards with received/pending status, and impact bar showing % of budget covered. Export CSV. Live data from `sheets-budget.js` with demo data fallback. |
+| `src/pages/admin/edit-website.astro` | `/admin/edit-website` | Resource manager with 3 quick-action cards: **Gallery Manager** (image thumbnails, upload drop zone), **Page Content Editor** (tab switcher for Home/About/Awards/Contact with editable fields), and **Link Shortener**. Resource cards grouped by category (Gallery, Documents, Spreadsheets, Presentations, Other). Presentations category supports Canva links. All interactions work visually with toast notifications. Demo resources embedded as fallback. |
 
 **Removed:** `minutes.astro` — minutes are accessed through calendar events only, not a standalone page.
 
@@ -53,17 +53,21 @@ All resources support GET · POST · PUT (by id) · DELETE (by id). All operatio
 
 | Resource | Fields stored |
 |---|---|
-| `events` | title, date, endDate, type, description, location, color, meetLink, minutesId |
+| `events` | title, startDate, endDate, type, description, location, color, meetingLink, meetingNotes, canvaLink, minutesId |
 | `tasks` | title, description, leadOfficer, otherOfficers[], deadline, dateAdded, status, location |
 | `strikes` | officerName, count, history[] |
 | `minutes` | title, date, content *(officer-meeting-linked only — no standalone page)* |
-| `roster` | firstName, lastName, role, grade, email, notes |
+| `roster` | firstName, lastName, role, grade, email, notes, points |
+| `points` | *(reserved for points tracking)* |
 | `website-resources` | label, url, category, description *(Drive links, image folders, etc.)* |
 | `slc-trips` | year, destination, flightDetails, hotelDetails, attendees[], totalCost, notes, driveLink |
 | `budget-entries` | date, category, description, amount, type (income\|expense), receiptUrl |
 
 ### Local dev fallback
 `dashboard.js` detects when Blobs isn't configured and falls back to local JSON files in `.netlify/blobs-local/fbla-dashboard/` (one file per resource). This folder is gitignored via `.netlify`. No `netlify link` needed for local dev.
+
+### Demo data fallback (presentation mode)
+Every admin page embeds comprehensive demo data arrays (`DEMO_EVENTS`, `DEMO_TASKS`, `DEMO_MEMBERS`, `DEMO_GRANTS`, etc.) that render when the API returns empty results. This ensures all pages look fully populated and interactive during presentations without any backend dependency. The pattern is: fetch from API → if `items.length === 0`, use the demo array instead.
 
 ---
 
@@ -123,28 +127,30 @@ The **upcoming sidebar** (no day selected) shows meetings and non-done deadlines
 
 ## Calendar + Minutes integration
 
-Meeting minutes only exist for officer meetings — there is no standalone minutes page. The flow:
+Meeting notes are available for **all event types** — not just officer meetings. There is no standalone minutes page. The flow:
 
-1. When creating a calendar event with type `Officer Meeting`, two extra fields appear: **Google Meet link** and an optional **Meeting Notes** textarea.
-2. That notes content is saved as a `minutes` resource entry; its `id` is stored in `event.minutesId`.
-3. Clicking any Officer Meeting event on the calendar opens a slide-out panel with:
-   - Join Google Meet button (links to `event.meetLink`)
-   - Meeting minutes inline (editable by officers)
+1. When creating/editing any calendar event, extra fields are available: **Google Meet link**, **Canva slides link**, and **Meeting Notes** textarea.
+2. Meeting notes are stored directly on the event as `meetingNotes`. Canva links stored as `canvaLink`.
+3. Clicking any event on the calendar opens a slide-out panel with:
+   - Join Google Meet button (links to `event.meetingLink`)
+   - View Slides button (purple, links to `event.canvaLink`)
+   - Meeting notes inline (editable by officers)
 4. No separate `/admin/minutes` route exists.
 
 ---
 
 ## Budget
 
-Live data is pulled from Google Sheets via `sheets-budget.js`. The page falls back to mock data if the function fails.
+Live data is pulled from Google Sheets via `sheets-budget.js`. The page falls back to comprehensive mock data if the function fails.
 
 **What's built:**
 - Tab bar for multi-tab budget sheets
 - Stats row: Total Revenue (actual), Total Expenses (actual + estimated), Current Balance, line item count
 - Bar chart (Chart.js): estimated vs actual per expense item — bars turn red when actual exceeds estimated
 - Doughnut chart (Chart.js): expense breakdown by item (actual amounts)
-- Revenue table (hidden when empty)
+- Revenue table with 4 income sources
 - Expense table: searchable, shows all sheet columns (item, date, price, count, estimated, actual, submitted by, MF/PA form info) — over-budget rows highlighted red
+- **Grants & Funding Sources:** Chart.js pie chart + grant item cards showing source, amount, and received/pending status. Grant impact bar shows what % of the total budget is covered by grants. Demo grants: FBLA National ($2,000), School ASB ($1,500), Bay Section ($800), Community Partner ($1,200), Parent Booster ($650 pending).
 - SLC trip tracker: card per year, CRUD modal, stored in Blobs as `slc-trips`
 - Export to CSV (filtered data)
 
@@ -209,23 +215,49 @@ The task board pulls live data from `sheets-tasks.js` (Google Sheets) and merges
 
 ---
 
-## Roster + strikes
+## Roster, Points & Leaderboard
 
-Roster members: `firstName`, `lastName`, `role`, `grade`, `email`, `notes`.
+Roster members: `firstName`, `lastName`, `role`, `grade`, `email`, `notes`, `points`.
 
 Roles: `President` · `Vice President` · `Secretary` · `Treasurer` · `Reporter` · `Parliamentarian` · `Historian` · `Officer` · `Member`
 
-Officers (non-Member roles) sort to the top. Tally marks are SVG — groups of 5 shown with a diagonal slash through 4 vertical bars.
+**72 members total** — 9 officers + 63 general members. All embedded as DEMO_MEMBERS fallback data.
 
-Strike matching: looks up `"${firstName} ${lastName}"` in the strikes map first, then falls back to `firstName` alone (for tasks created before the roster existed).
+### Two views (toggle button in header)
+- **Roster view:** Table with section headers separating Officers and Members. Columns: Name, Role/Grade, Email, Points, Strikes. Strike +/− buttons appear on hover for each member with optimistic UI updates.
+- **Leaderboard view:** Podium showing top 3 (gold/silver/bronze cards) + ranked table for remaining members sorted by points descending.
+
+### Points system
+| Action | Points |
+|---|---|
+| CTE Meeting attendance | +10 |
+| Winning a competition | +50 |
+| Competing in an event | +20 |
+| Engagement in meetings | +5 |
+| Recruiting new members | +15 |
+| Strike penalty | −25 |
+
+Points badges are color-coded: green (100+), blue (50–99), gray (0–49).
+
+### Strikes
+Strike +/− buttons on each member row. Optimistic UI — the count updates instantly, then saves to Blobs in the background. Strike data stored in `strikes` resource with `officerName`, `count`, and `history[]`.
 
 ---
 
 ## Edit Website
 
-`/admin/edit-website` lets officers manage Drive resource links for the public site. Add a Google Drive URL + label + category and it appears as a clickable card grouped by category (Gallery, Documents, Spreadsheets, Other). Stored in `website-resources` Blobs resource.
+`/admin/edit-website` is the website management hub with three quick-action panels and a full resource manager.
 
-**Gallery manager** is a placeholder card — the GitHub API commit flow (like `links.js`) still needs to be wired up to actually upload/delete photos from `src/assets/gallery/`.
+**Quick-action panels:**
+- **Gallery Manager** — Image thumbnails with upload drop zone. Drag-and-drop or click to upload. Delete button on each image.
+- **Page Content Editor** — Tab switcher (Home, About, Awards, Contact) with editable text fields for each page section. Save button per tab.
+- **Link Shortener** — Quick link from the original edit-website feature.
+
+**Resource manager:** Cards grouped by category (Gallery, Documents, Spreadsheets, Presentations, Other). Presentations category displays Canva links. Add new resources with URL + label + category. Stored in `website-resources` Blobs resource.
+
+All interactions provide visual feedback via toast notifications. 10 demo resources embedded as fallback for presentation mode.
+
+**Note:** Gallery uploads and page content saves are presentation-ready UI — the GitHub API commit flow for actual file operations still needs to be wired up.
 
 ---
 
@@ -250,8 +282,10 @@ Netlify Blobs auto-creates its store on first write — no setup needed.
 
 | Feature | Priority | Notes |
 |---|---|---|
-| **Gallery manager** | High | `/admin/edit-website` has a placeholder card. Wire up GitHub API commit flow (mirroring `links.js`) to upload images to `src/assets/gallery/` and delete them. |
-| **Sunday officer meetings** | High | Add recurring Sunday 9PM officer meeting events to the calendar (Oct 2025 – Apr 2026, ~30 events). User has meeting minutes for all of them to paste in. |
+| **Gallery upload backend** | High | `/admin/edit-website` gallery manager UI is built. Wire up GitHub API commit flow (mirroring `links.js`) to actually upload images to `src/assets/gallery/` and delete them. |
+| **Page content save backend** | High | Page Content Editor UI is built with tabs and editable fields. Needs backend to persist edits and reflect on the public site. |
+| **Points persistence** | Medium | Points are currently demo data only. Wire up a `points` Blobs resource so point adjustments (from CTE attendance, wins, etc.) persist across sessions. |
 | **Strike history UI** | Medium | Click-to-expand row in roster showing each strike entry (task name, date). Data is already stored in `history[]` on each strike record. |
+| **Sunday officer meetings** | Medium | Add recurring Sunday 9PM officer meeting events to the calendar (Oct 2025 – Apr 2026, ~30 events). User has meeting minutes for all of them to paste in. |
 | **Instagram feed** | Low | Needs Instagram Basic Display API (requires app review) or a third-party embed widget. |
 | **Calendar recurrence** | Low | Recurring LOOP sessions. Would need a `repeat` field on events + expansion logic in `renderCalendar`. |

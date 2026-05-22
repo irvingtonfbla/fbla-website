@@ -76,7 +76,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
       <div class="card">
         <div class="card-header">
           <h2>Recent Minutes</h2>
-          <a href="/admin/minutes" class="btn btn-secondary btn-sm">See all</a>
+          <a href="/admin/calendar" class="btn btn-secondary btn-sm">See all</a>
         </div>
         <div id="recent-minutes">
           <div class="skeleton-list">
@@ -140,6 +140,38 @@ const hour = new Date().getHours();
 const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 document.getElementById('greeting')!.textContent = `${greet}. Here's what's happening with Irvington FBLA.`;
 
+const DEMO_EVENTS = [
+  {title:'CTE Meeting',type:'event',startDate:'2026-05-22',meetingLink:'https://meet.google.com/abc-defg-hij'},
+  {title:'Bake Sale Fundraiser',type:'fundraiser',startDate:'2026-05-23'},
+  {title:'Officer Meeting',type:'officer',startDate:'2026-05-24',meetingLink:'https://meet.google.com/xyz-uvwx-yz'},
+  {title:'LOOP Session — Spreadsheets',type:'loop',startDate:'2026-05-28',meetingLink:'https://meet.google.com/loop-sprd-sht'},
+  {title:'Car Wash Fundraiser',type:'fundraiser',startDate:'2026-05-30'},
+  {title:'FBLA National Leadership Conference',type:'conference',startDate:'2026-06-01',endDate:'2026-06-05'},
+  {title:'End-of-Year Banquet',type:'event',startDate:'2026-06-05'},
+];
+
+const DEMO_TASKS = [
+  {title:'Finalize NLC travel itinerary',status:'in-progress',deadline:'2026-05-25',assignedTo:['Eva Arya','Rahul M.R.']},
+  {title:'Send competition results to newsletter',status:'not-started',deadline:'2026-05-26',assignedTo:['Advika Anand']},
+  {title:'Order spirit wear for banquet',status:'in-progress',deadline:'2026-05-28',assignedTo:['Amol Banerjee']},
+  {title:'Prepare officer election ballots',status:'not-started',deadline:'2026-05-30',assignedTo:['Naina Akkati']},
+  {title:'Submit final budget report',status:'not-started',deadline:'2026-06-01',assignedTo:['Eva Arya']},
+  {title:'Book banquet venue',status:'in-progress',deadline:'2026-05-28',assignedTo:['Rahul M.R.']},
+];
+
+const DEMO_MINUTES = [
+  {type:'officer',date:'2026-05-24',title:'Officer Meeting'},
+  {type:'officer',date:'2026-05-17',title:'Officer Meeting'},
+  {type:'officer',date:'2026-05-10',title:'Officer Meeting'},
+  {type:'officer',date:'2026-05-03',title:'Officer Meeting'},
+];
+
+const DEMO_STRIKES = [
+  {officerName:'Veer Mistry',count:2},
+  {officerName:'Om Patel',count:1},
+  {officerName:'Rayan Khan',count:1},
+];
+
 async function load() {
   const [evData, taskData, minData, strikeData] = await Promise.all([
     fetchResource('events'),
@@ -148,22 +180,26 @@ async function load() {
     fetchResource('strikes'),
   ]);
 
+  const evItems = (evData.items as any[]).length > 0 ? evData.items : DEMO_EVENTS;
+  const taskItems = (taskData.items as any[]).length > 0 ? taskData.items : DEMO_TASKS;
+  const minItems = (minData.items as any[]).length > 0 ? minData.items : DEMO_MINUTES;
+  const strikeItems = (strikeData.items as any[]).length > 0 ? strikeData.items : DEMO_STRIKES;
+
   const now = new Date();
   const in30 = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
-  const upcoming = (evData.items as any[])
+  const upcoming = (evItems as any[])
     .filter((e: any) => new Date(e.startDate) >= now && new Date(e.startDate) <= in30)
     .sort((a: any, b: any) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
 
-  const openTasks = (taskData.items as any[]).filter((t: any) => t.status !== 'done' && t.status !== 'missed');
-  const overdue = openTasks.filter((t: any) => isOverdue(t.deadline));
+  const openTasks = (taskItems as any[]).filter((t: any) => t.status !== 'done' && t.status !== 'missed');
+  const overdue = openTasks.filter((t: any) => t.deadline && isOverdue(t.deadline));
 
   document.getElementById('stat-events')!.textContent = String(upcoming.length);
   document.getElementById('stat-open-tasks')!.textContent = String(openTasks.length);
   document.getElementById('stat-overdue')!.textContent = String(overdue.length);
-  document.getElementById('stat-minutes')!.textContent = String((minData.items as any[]).length);
+  document.getElementById('stat-minutes')!.textContent = String((minItems as any[]).length);
 
-  // Upcoming events list
   const evEl = document.getElementById('upcoming-events')!;
   if (upcoming.length === 0) {
     evEl.innerHTML = '<div class="empty-state"><p>No events in the next 30 days</p></div>';
@@ -180,7 +216,6 @@ async function load() {
     `).join('');
   }
 
-  // Open tasks list
   const taskEl = document.getElementById('open-tasks')!;
   if (openTasks.length === 0) {
     taskEl.innerHTML = '<div class="empty-state"><p>No open tasks — all caught up!</p></div>';
@@ -192,32 +227,31 @@ async function load() {
           <div class="status-dot ${t.status === 'in-progress' ? 'in-progress' : 'not-started'}"></div>
           <div class="list-item-body">
             <div class="list-item-title">${t.title}</div>
-            <div class="list-item-sub ${od ? 'overdue-text' : ''}">${t.deadline ? (od ? '⚠ Overdue · ' : '') + fmtDate(t.deadline) : 'No deadline'} · ${(t.assignedTo || []).join(', ') || 'Unassigned'}</div>
+            <div class="list-item-sub ${od ? 'overdue-text' : ''}">${t.deadline ? (od ? 'Overdue · ' : '') + fmtDate(t.deadline) : 'No deadline'} · ${(t.assignedTo || []).join(', ') || 'Unassigned'}</div>
           </div>
         </div>
       `;
     }).join('');
   }
 
-  // Recent minutes
   const minEl = document.getElementById('recent-minutes')!;
-  const sortedMin = [...(minData.items as any[])].sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const sortedMin = [...(minItems as any[])].sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
   if (sortedMin.length === 0) {
     minEl.innerHTML = '<div class="empty-state"><p>No meeting minutes yet</p></div>';
   } else {
     minEl.innerHTML = sortedMin.slice(0, 4).map((m: any) => `
       <div class="list-item">
+        <div class="event-dot" style="background:${TYPE_COLORS[m.type] || '#3b82f6'}"></div>
         <div class="list-item-body">
-          <div class="list-item-title">${MINUTES_LABELS[m.type] || m.type}</div>
-          <div class="list-item-sub">${fmtDate(m.date)} · ${(m.attendees || []).length} attendees</div>
+          <div class="list-item-title">${m.title || MINUTES_LABELS[m.type] || 'Meeting'}</div>
+          <div class="list-item-sub">${fmtDate(m.date)}</div>
         </div>
       </div>
     `).join('');
   }
 
-  // Strike board
   const strikeEl = document.getElementById('strike-board')!;
-  const strikes = (strikeData.items as any[]).filter((s: any) => s.count > 0).sort((a: any, b: any) => b.count - a.count);
+  const strikes = (strikeItems as any[]).filter((s: any) => s.count > 0).sort((a: any, b: any) => b.count - a.count);
   if (strikes.length === 0) {
     strikeEl.innerHTML = '<div class="empty-state"><p>No strikes recorded — keep it up!</p></div>';
   } else {

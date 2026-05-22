@@ -56,6 +56,30 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
       </div>
     </div>
 
+    <!-- Grants & Funding Section -->
+    <div class="card section-card" id="grants-section">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:0.5rem">
+        <div>
+          <h2 class="section-title" style="margin:0">Grants & Funding Sources</h2>
+          <p style="font-size:0.8rem;color:#64748b;margin:0.25rem 0 0">How external funding supports our chapter</p>
+        </div>
+        <div class="grant-total-badge" id="grant-total-badge">
+          <span class="grant-total-label">Total Grant Funding</span>
+          <span class="grant-total-val" id="grant-total-val">$0</span>
+        </div>
+      </div>
+      <div class="grants-layout">
+        <div class="grant-chart-wrap">
+          <canvas id="grants-chart" height="200"></canvas>
+        </div>
+        <div class="grant-items" id="grant-items"></div>
+      </div>
+      <div class="grant-impact" id="grant-impact">
+        <div class="grant-impact-bar"><div class="grant-impact-fill" id="grant-impact-fill"></div></div>
+        <div class="grant-impact-label" id="grant-impact-label">Grants cover 0% of total budget</div>
+      </div>
+    </div>
+
     <!-- Revenue section -->
     <div class="card section-card" id="revenue-section" style="display:none">
       <h2 class="section-title">Revenue</h2>
@@ -185,6 +209,15 @@ let activeTab = '';
 let allExpenses: any[] = [];
 let chartBar: any = null;
 let chartDonut: any = null;
+let chartGrants: any = null;
+
+const DEMO_GRANTS = [
+  { source: 'FBLA National Chapter Grant', amount: 2000, status: 'Received', description: 'Annual chapter development grant' },
+  { source: 'School ASB Allocation', amount: 1500, status: 'Received', description: 'Student government annual funding' },
+  { source: 'Bay Section Award', amount: 800, status: 'Received', description: 'Outstanding chapter performance award' },
+  { source: 'Community Business Partner', amount: 1200, status: 'Received', description: 'Local business sponsorship — TechCorp Inc.' },
+  { source: 'Parent Booster Fund', amount: 650, status: 'Pending', description: 'PTSA supplemental grant for SLC travel' },
+];
 
 async function loadSheets() {
   const syncEl = document.getElementById('sync-status')!;
@@ -262,6 +295,7 @@ function renderTab(tab: string) {
 
   renderExpenseTable(expenses);
   renderCharts(expenses);
+  renderGrants();
 }
 
 function renderExpenseTable(expenses: any[]) {
@@ -361,18 +395,86 @@ function renderMockData() {
   document.getElementById('stat-exp-est')!.textContent = 'est. $15,148';
   document.getElementById('stat-balance')!.textContent = '$10,542';
   document.getElementById('stat-bal-est')!.textContent = 'est. $6,102';
-  document.getElementById('stat-items')!.textContent = '7';
+  document.getElementById('stat-items')!.textContent = '8';
   allExpenses = [
-    { item: 'Transportation (Flights)', date: '9/18', price: 750, count: 8, estimated: 6000, actual: 0, submittedBy: '', mfPaNotes: '' },
-    { item: 'Transportation (Shuttle)', price: 81.50, count: 1, estimated: 650, actual: 0 },
-    { item: 'Rooms', price: 679.73, count: 4, estimated: 5437.80, actual: 8448 },
-    { item: 'Conference Registration (Student)', price: 195, count: 8, estimated: 1560, actual: 5110 },
-    { item: 'Theme Park (Six Flags)', price: 55, count: 10, estimated: 550, actual: 550 },
-    { item: 'Conference Registration (Adviser)', price: 125, count: 2, estimated: 250, actual: 0 },
-    { item: 'Food + misc', price: 200, count: 1, estimated: 200, actual: 0 },
+    { item: 'Transportation (Flights)', date: '9/18', price: 750, count: 8, estimated: 6000, actual: 5400, submittedBy: 'Eva Arya', mfPaNotes: 'United Airlines' },
+    { item: 'Transportation (Shuttle)', date: '10/2', price: 81.50, count: 1, estimated: 650, actual: 490, submittedBy: 'Eva Arya' },
+    { item: 'Hotel Rooms', date: '10/2', price: 679.73, count: 4, estimated: 5438, actual: 8448, submittedBy: 'Rahul M.R.', mfPaNotes: 'Marriott Marquis — over budget due to rate increase' },
+    { item: 'Conference Reg. (Student)', date: '8/15', price: 195, count: 8, estimated: 1560, actual: 1560, submittedBy: 'Advika Anand' },
+    { item: 'Conference Reg. (Adviser)', date: '8/15', price: 125, count: 2, estimated: 250, actual: 250, submittedBy: 'Advika Anand' },
+    { item: 'Theme Park (Six Flags)', date: '11/5', price: 55, count: 10, estimated: 550, actual: 550, submittedBy: 'Naina Akkati' },
+    { item: 'Food & Per Diem', date: '10/3', price: 50, count: 10, estimated: 500, actual: 420, submittedBy: 'Eva Arya' },
+    { item: 'Printing & Materials', date: '9/12', price: 200, count: 1, estimated: 200, actual: 180, submittedBy: 'Amol Banerjee' },
   ];
+
+  const mockRevenue = [
+    { item: 'Bake Sale Fundraiser', date: '10/15', estimated: 500, actual: 720, submittedBy: 'Naina Akkati' },
+    { item: 'Car Wash Fundraiser', date: '11/8', estimated: 400, actual: 510, submittedBy: 'Lehana Chennupati' },
+    { item: 'Club Dues Collection', date: '9/1', estimated: 2000, actual: 2100, submittedBy: 'Eva Arya' },
+    { item: 'Spirit Wear Sales', date: '10/20', estimated: 800, actual: 1170, submittedBy: 'Amol Banerjee' },
+  ];
+
+  const revSection = document.getElementById('revenue-section')!;
+  revSection.style.display = '';
+  const revTbody = document.getElementById('revenue-tbody')!;
+  revTbody.innerHTML = mockRevenue.map(r => `<tr>
+    <td>${r.date}</td>
+    <td><strong>${r.item}</strong></td>
+    <td>${r.estimated > 0 ? fmt(r.estimated) : '—'}</td>
+    <td>${r.actual > 0 ? fmt(r.actual) : '—'}</td>
+    <td>${r.submittedBy || '—'}</td>
+  </tr>`).join('');
+
   renderExpenseTable(allExpenses);
   renderCharts(allExpenses);
+  renderGrants();
+}
+
+function renderGrants() {
+  const total = DEMO_GRANTS.reduce((s, g) => s + g.amount, 0);
+  const totalBudget = 24650;
+  const pct = Math.round((total / totalBudget) * 100);
+
+  document.getElementById('grant-total-val')!.textContent = fmt(total);
+
+  const GRANT_COLORS = ['#3b82f6','#8b5cf6','#14b8a6','#f97316','#f59e0b'];
+  const itemsEl = document.getElementById('grant-items')!;
+  itemsEl.innerHTML = DEMO_GRANTS.map((g, i) => `
+    <div class="grant-item">
+      <div class="grant-item-header">
+        <span class="grant-dot" style="background:${GRANT_COLORS[i]}"></span>
+        <span class="grant-source">${g.source}</span>
+        <span class="grant-amount">${fmt(g.amount)}</span>
+      </div>
+      <div class="grant-desc">${g.description}</div>
+      <span class="grant-status ${g.status === 'Received' ? 'received' : 'pending'}">${g.status}</span>
+    </div>
+  `).join('');
+
+  const impactFill = document.getElementById('grant-impact-fill')!;
+  impactFill.style.width = pct + '%';
+  document.getElementById('grant-impact-label')!.textContent = `Grants cover ${pct}% of total budget ($${total.toLocaleString()} of $${totalBudget.toLocaleString()})`;
+
+  const gCtx = (document.getElementById('grants-chart') as HTMLCanvasElement).getContext('2d')!;
+  if (chartGrants) { chartGrants.destroy(); chartGrants = null; }
+  chartGrants = new (window as any).Chart(gCtx, {
+    type: 'pie',
+    data: {
+      labels: DEMO_GRANTS.map(g => g.source),
+      datasets: [{
+        data: DEMO_GRANTS.map(g => g.amount),
+        backgroundColor: GRANT_COLORS,
+        borderWidth: 2, borderColor: 'white',
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: (c: any) => ` ${c.label}: ${fmt(c.raw)}` } },
+      },
+    },
+  });
 }
 
 // ── SLC Trips ──────────────────────────────────────────────────────
@@ -567,4 +669,31 @@ loadSlcTrips();
 .slc-stat-val { font-size: 1.1rem; font-weight: 700; color: #0f172a; }
 .slc-detail { font-size: 0.82rem; color: #374151; margin-top: 0.5rem; line-height: 1.5; }
 .slc-detail strong { color: #1e293b; }
+
+/* Grants */
+.grant-total-badge { display:flex; flex-direction:column; align-items:flex-end; background:linear-gradient(135deg,#eff6ff,#dbeafe); border:1px solid #bfdbfe; border-radius:12px; padding:0.6rem 1.25rem; }
+.grant-total-label { font-size:0.68rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#3b82f6; }
+.grant-total-val { font-size:1.4rem; font-weight:800; color:#1e3a8a; line-height:1.2; }
+
+.grants-layout { display:grid; grid-template-columns:200px 1fr; gap:1.5rem; align-items:start; }
+@media (max-width: 700px) { .grants-layout { grid-template-columns:1fr; } }
+.grant-chart-wrap { position:relative; }
+#grants-chart { max-height:200px; }
+
+.grant-items { display:flex; flex-direction:column; gap:0.6rem; }
+.grant-item { border:1px solid #e2e8f0; border-radius:10px; padding:0.75rem 1rem; background:#fafafa; transition:border-color 0.15s; }
+.grant-item:hover { border-color:#94a3b8; }
+.grant-item-header { display:flex; align-items:center; gap:0.5rem; }
+.grant-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+.grant-source { font-weight:700; color:#1e293b; font-size:0.875rem; flex:1; }
+.grant-amount { font-weight:700; color:#1e3a8a; font-size:0.95rem; }
+.grant-desc { font-size:0.78rem; color:#64748b; margin:0.2rem 0 0.35rem 1.4rem; }
+.grant-status { display:inline-block; font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; padding:0.1rem 0.5rem; border-radius:50px; margin-left:1.4rem; }
+.grant-status.received { background:#f0fdf4; color:#15803d; }
+.grant-status.pending { background:#fffbeb; color:#b45309; }
+
+.grant-impact { margin-top:1.25rem; padding-top:1rem; border-top:1px solid #e2e8f0; }
+.grant-impact-bar { height:10px; background:#f1f5f9; border-radius:5px; overflow:hidden; margin-bottom:0.5rem; }
+.grant-impact-fill { height:100%; background:linear-gradient(90deg,#3b82f6,#1e3a8a); border-radius:5px; transition:width 0.8s ease; }
+.grant-impact-label { font-size:0.8rem; color:#64748b; font-weight:500; }
 </style>
