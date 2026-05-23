@@ -16,13 +16,15 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
       <select id="role-filter" class="filter-select">
         <option value="">All Roles</option>
         <option value="President">President</option>
-        <option value="Vice President">Vice President</option>
-        <option value="Secretary">Secretary</option>
-        <option value="Treasurer">Treasurer</option>
-        <option value="Reporter">Reporter</option>
-        <option value="Parliamentarian">Parliamentarian</option>
-        <option value="Historian">Historian</option>
-        <option value="Officer">Officer</option>
+        <option value="VP of Comps">VP of Comps</option>
+        <option value="VP of Outreach">VP of Outreach</option>
+        <option value="VP of Programs">VP of Programs</option>
+        <option value="VP of Logs">VP of Logs</option>
+        <option value="Director of Comps">Director of Comps</option>
+        <option value="Director of Outreach">Director of Outreach</option>
+        <option value="Director of Programs">Director of Programs</option>
+        <option value="Director of Logs">Director of Logs</option>
+        <option value="Intern">Intern</option>
         <option value="Member">Member</option>
       </select>
       <button class="btn btn-secondary" id="view-toggle">
@@ -124,14 +126,16 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
             <label class="form-label">Role *</label>
             <select id="f-role" class="form-control">
               <option value="Member">Member</option>
-              <option value="Officer">Officer</option>
               <option value="President">President</option>
-              <option value="Vice President">Vice President</option>
-              <option value="Secretary">Secretary</option>
-              <option value="Treasurer">Treasurer</option>
-              <option value="Reporter">Reporter</option>
-              <option value="Parliamentarian">Parliamentarian</option>
-              <option value="Historian">Historian</option>
+              <option value="VP of Comps">VP of Comps</option>
+              <option value="VP of Outreach">VP of Outreach</option>
+              <option value="VP of Programs">VP of Programs</option>
+              <option value="VP of Logs">VP of Logs</option>
+              <option value="Director of Comps">Director of Comps</option>
+              <option value="Director of Outreach">Director of Outreach</option>
+              <option value="Director of Programs">Director of Programs</option>
+              <option value="Director of Logs">Director of Logs</option>
+              <option value="Intern">Intern</option>
             </select>
           </div>
           <div class="form-group">
@@ -171,19 +175,24 @@ const pw = localStorage.getItem('fbla_admin_pw') || '';
 const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${pw}` };
 
 const DEMO_MEMBERS: any[] = [
-  {id:'m0',firstName:'Rahul',lastName:'Manicka Rajkumar',email:'mrj.rahul@gmail.com',role:'President',grade:'12',points:245,strikes:0,notes:'Chapter President'},
-  {id:'m1',firstName:'Naina',lastName:'Akkati',email:'nainaakkati@gmail.com',role:'Vice President',grade:'12',points:210,strikes:0,notes:'Leadership Development'},
-  {id:'m2',firstName:'Advika',lastName:'Anand',email:'awesomeadu08@gmail.com',role:'Secretary',grade:'11',points:195,strikes:0,notes:'Competitive Events Coord.'},
-  {id:'m3',firstName:'Eva',lastName:'Arya',email:'evaaryakirthal@gmail.com',role:'Treasurer',grade:'11',points:180,strikes:0,notes:'Budget & Finance'},
-  {id:'m4',firstName:'Amol',lastName:'Banerjee',email:'amolbanthere@gmail.com',role:'Reporter',grade:'12',points:170,strikes:0,notes:'Social Media Lead'},
-  {id:'m5',firstName:'Neel',lastName:'Bhat',email:'neelganeshbhat@gmail.com',role:'Parliamentarian',grade:'11',points:155,strikes:0,notes:''},
-  {id:'m6',firstName:'Lehana',lastName:'Chennupati',email:'lehana.chennupati@gmail.com',role:'Historian',grade:'11',points:145,strikes:0,notes:''},
-  {id:'m7',firstName:'Zachary',lastName:'Chenthanakij',email:'zchentha@gmail.com',role:'Officer',grade:'12',points:135,strikes:0,notes:''},
-  {id:'m8',firstName:'Stefanie',lastName:'da Cruz',email:'stefanie.l.dacruz@gmail.com',role:'Officer',grade:'11',points:128,strikes:0,notes:''},
+  {id:'m0',firstName:'Veer',lastName:'Mistry',email:'emailveerm@gmail.com',role:'President',grade:'10',points:67,strikes:0,notes:'Chapter President'},
+  {id:'m1',firstName:'Rahul',lastName:'Manicka Rajkumar',email:'mrj.rahul@gmail.com',role:'Director of Outreach',grade:'12',points:500,strikes:0,notes:''},
+  {id:'m2',firstName:'Avnita',lastName:'Patil',email:'avnitapatil3@gmail.com',role:'Director of Outreach',grade:'10',points:60,strikes:0,notes:''},
+  {id:'m3',firstName:'Vaishnavi',lastName:'Polavarapu',email:'vaishnavihearts@gmail.com',role:'VP of Outreach',grade:'11',points:53,strikes:0,notes:''},
+  {id:'m4',firstName:'Naina',lastName:'Akkati',email:'nainaakkati@gmail.com',role:'VP of Logs',grade:'12',points:210,strikes:0,notes:''},
+  {id:'m5',firstName:'Poojha',lastName:'Suresh Kumar',email:'poojhasureshkumar@gmail.com',role:'Director of Logs',grade:'10',points:27,strikes:0,notes:''},
+  {id:'m6',firstName:'Advika',lastName:'Anand',email:'awesomeadu08@gmail.com',role:'VP of Programs',grade:'11',points:195,strikes:0,notes:''},
+  {id:'m7',firstName:'Neel',lastName:'Bhimani',email:'neelbhimani30@gmail.com',role:'Director of Programs',grade:'10',points:78,strikes:0,notes:''},
+  {id:'m8',firstName:'Stefanie',lastName:'da Cruz',email:'stefanie.l.dacruz@gmail.com',role:'VP of Comps',grade:'11',points:128,strikes:0,notes:''},
+  {id:'m9x',firstName:'Eva',lastName:'Arya',email:'evaaryakirthal@gmail.com',role:'Director of Comps',grade:'11',points:180,strikes:0,notes:''},
+  {id:'m9y',firstName:'Tanvi',lastName:'Sardana',email:'tanvisardana2009@gmail.com',role:'Director of Comps',grade:'10',points:45,strikes:0,notes:''},
+  {id:'m9z',firstName:'Krish',lastName:'Kowkuntla',email:'krish.kowkuntla@gmail.com',role:'Director of Comps',grade:'10',points:670000,strikes:0,notes:''},
+  {id:'m9w',firstName:'Harshith Sai',lastName:'Mannaru',email:'Raocl.m@gmail.com',role:'Director of Comps',grade:'11',points:75,strikes:0,notes:''},
+  {id:'m9v',firstName:'Aratrika',lastName:'Pal',email:'aratrikapal1@gmail.com',role:'Intern',grade:'11',points:125,strikes:0,notes:''},
   {id:'m9',firstName:'Ahana',lastName:'Giri',email:'ahgma31@gmail.com',role:'Member',grade:'11',points:140,strikes:0,notes:''},
   {id:'m10',firstName:'Aarshi',lastName:'Jain',email:'aarshijain0309@gmail.com',role:'Member',grade:'10',points:135,strikes:0,notes:''},
   {id:'m11',firstName:'Anish',lastName:'Shankar',email:'anish.shankar08@gmail.com',role:'Member',grade:'12',points:130,strikes:0,notes:''},
-  {id:'m12',firstName:'Aratrika',lastName:'Pal',email:'aratrikapal1@gmail.com',role:'Member',grade:'11',points:125,strikes:0,notes:''},
+  {id:'m12',firstName:'Amol',lastName:'Banerjee',email:'amolbanthere@gmail.com',role:'Member',grade:'12',points:170,strikes:0,notes:''},
   {id:'m13',firstName:'Molly',lastName:'Jeng',email:'momojeng3366@gmail.com',role:'Member',grade:'10',points:120,strikes:0,notes:''},
   {id:'m14',firstName:'Sai Shripad',lastName:'Gottipati',email:'sshripad.g@gmail.com',role:'Member',grade:'11',points:115,strikes:0,notes:''},
   {id:'m15',firstName:'Aashna',lastName:'Gupta',email:'aasgup312@gmail.com',role:'Member',grade:'10',points:110,strikes:0,notes:''},
@@ -191,25 +200,21 @@ const DEMO_MEMBERS: any[] = [
   {id:'m17',firstName:'Srikar',lastName:'Kancharla',email:'srikan837@gmail.com',role:'Member',grade:'11',points:100,strikes:0,notes:''},
   {id:'m18',firstName:'Avi',lastName:'Kapoor',email:'avikapoor34@gmail.com',role:'Member',grade:'10',points:95,strikes:0,notes:''},
   {id:'m19',firstName:'Chaithranshu',lastName:'Kosuri',email:'chaithrakosuri3@gmail.com',role:'Member',grade:'11',points:92,strikes:0,notes:''},
-  {id:'m20',firstName:'Krish',lastName:'Kowkuntla',email:'krish.kowkuntla@gmail.com',role:'Member',grade:'10',points:88,strikes:0,notes:''},
+  {id:'m20',firstName:'Neel',lastName:'Bhat',email:'neelganeshbhat@gmail.com',role:'Member',grade:'11',points:155,strikes:0,notes:''},
   {id:'m21',firstName:'Alvin',lastName:'Lai',email:'alvdadalv@gmail.com',role:'Member',grade:'12',points:85,strikes:0,notes:''},
   {id:'m22',firstName:'Ayaan',lastName:'Maheshwari',email:'basketballayaan8@gmail.com',role:'Member',grade:'10',points:82,strikes:0,notes:''},
   {id:'m23',firstName:'Krisha',lastName:'Mahurkar',email:'krishamahurkar@gmail.com',role:'Member',grade:'11',points:80,strikes:0,notes:''},
-  {id:'m24',firstName:'Neel',lastName:'Bhimani',email:'neelbhimani30@gmail.com',role:'Member',grade:'10',points:78,strikes:0,notes:''},
-  {id:'m25',firstName:'Harshith Sai',lastName:'Mannaru',email:'Raocl.m@gmail.com',role:'Member',grade:'11',points:75,strikes:0,notes:''},
-  {id:'m26',firstName:'Veer',lastName:'Mistry',email:'emailveerm@gmail.com',role:'Member',grade:'10',points:70,strikes:2,notes:''},
+  {id:'m24',firstName:'Lehana',lastName:'Chennupati',email:'lehana.chennupati@gmail.com',role:'Member',grade:'11',points:145,strikes:0,notes:''},
+  {id:'m25',firstName:'Zachary',lastName:'Chenthanakij',email:'zchentha@gmail.com',role:'Member',grade:'12',points:135,strikes:0,notes:''},
   {id:'m27',firstName:'Mai-Ha',lastName:'Nghiem',email:'mai3nghiem@gmail.com',role:'Member',grade:'12',points:68,strikes:0,notes:''},
   {id:'m28',firstName:'Om',lastName:'Patel',email:'omisgoodatlife@gmail.com',role:'Member',grade:'10',points:65,strikes:1,notes:''},
   {id:'m29',firstName:'Savar',lastName:'Patil',email:'patilsavar24@gmail.com',role:'Member',grade:'11',points:62,strikes:0,notes:''},
-  {id:'m30',firstName:'Avnita',lastName:'Patil',email:'avnitapatil3@gmail.com',role:'Member',grade:'10',points:60,strikes:0,notes:''},
   {id:'m31',firstName:'Shreya',lastName:'Pichika',email:'shreyapichika@gmail.com',role:'Member',grade:'11',points:58,strikes:0,notes:''},
   {id:'m32',firstName:'Sri Manasvi',lastName:'Raparla',email:'srimanrap80@gmail.com',role:'Member',grade:'10',points:56,strikes:0,notes:''},
   {id:'m33',firstName:'Vaibhav',lastName:'Polavarapu',email:'vaibhavclans@gmail.com',role:'Member',grade:'10',points:55,strikes:0,notes:''},
-  {id:'m34',firstName:'Vaishnavi',lastName:'Polavarapu',email:'vaishnavihearts@gmail.com',role:'Member',grade:'11',points:53,strikes:0,notes:''},
   {id:'m35',firstName:'Sharanya',lastName:'Ponnala',email:'sharanya.unicorn1@gmail.com',role:'Member',grade:'10',points:50,strikes:0,notes:''},
   {id:'m36',firstName:'Navneet',lastName:'Prakash',email:'navneetprakash514@gmail.com',role:'Member',grade:'12',points:48,strikes:0,notes:''},
   {id:'m37',firstName:'Navika',lastName:'Deepak',email:'navikad4@gmail.com',role:'Member',grade:'9',points:46,strikes:0,notes:''},
-  {id:'m38',firstName:'Tanvi',lastName:'Sardana',email:'tanvisardana2009@gmail.com',role:'Member',grade:'10',points:45,strikes:0,notes:''},
   {id:'m39',firstName:'Yuvan',lastName:'Satish',email:'yuvan.m.satish@gmail.com',role:'Member',grade:'11',points:42,strikes:0,notes:''},
   {id:'m40',firstName:'Surapujita',lastName:'Seerla',email:'surapujita.s@gmail.com',role:'Member',grade:'10',points:40,strikes:0,notes:''},
   {id:'m41',firstName:'Avelyn',lastName:'Peng',email:'avepen2011@gmail.com',role:'Member',grade:'9',points:38,strikes:0,notes:''},
@@ -218,7 +223,6 @@ const DEMO_MEMBERS: any[] = [
   {id:'m44',firstName:'Ayushi',lastName:'Singh',email:'ayushi.diamond@gmail.com',role:'Member',grade:'10',points:32,strikes:0,notes:''},
   {id:'m45',firstName:'Hasini',lastName:'Deepak',email:'hasini.srideepak@gmail.com',role:'Member',grade:'9',points:30,strikes:0,notes:''},
   {id:'m46',firstName:'Rithvik',lastName:'Singidi',email:'rithviksingidi@gmail.com',role:'Member',grade:'11',points:28,strikes:0,notes:''},
-  {id:'m47',firstName:'Poojha',lastName:'Suresh Kumar',email:'poojhasureshkumar@gmail.com',role:'Member',grade:'10',points:27,strikes:0,notes:''},
   {id:'m48',firstName:'Anushvi',lastName:'Chezhiyan',email:'canushvi@gmail.com',role:'Member',grade:'10',points:25,strikes:0,notes:''},
   {id:'m49',firstName:'Spriha',lastName:'Talachiru',email:'tspriha@gmail.com',role:'Member',grade:'12',points:24,strikes:0,notes:''},
   {id:'m50',firstName:'Jyot',lastName:'Kaur',email:'reachjyot.k@gmail.com',role:'Member',grade:'9',points:22,strikes:0,notes:''},
@@ -248,12 +252,13 @@ const DEMO_MEMBERS: any[] = [
 let allMembers: any[] = [];
 let activeView: 'roster' | 'leaderboard' = 'roster';
 
-const OFFICER_ROLES = new Set(['President','Vice President','Secretary','Treasurer','Reporter','Parliamentarian','Historian','Officer']);
+const OFFICER_ROLES = new Set(['President','VP of Comps','VP of Outreach','VP of Programs','VP of Logs','Director of Comps','Director of Outreach','Director of Programs','Director of Logs','Intern']);
 
 const ROLE_COLORS: Record<string,string> = {
-  President:'badge-blue','Vice President':'badge-purple',Secretary:'badge-teal',
-  Treasurer:'badge-green',Reporter:'badge-orange',Parliamentarian:'badge-orange',
-  Historian:'badge-orange',Officer:'badge-blue',Member:'badge-gray',
+  President:'badge-blue',
+  'VP of Comps':'badge-purple','VP of Outreach':'badge-purple','VP of Programs':'badge-purple','VP of Logs':'badge-purple',
+  'Director of Comps':'badge-teal','Director of Outreach':'badge-teal','Director of Programs':'badge-teal','Director of Logs':'badge-teal',
+  Intern:'badge-orange',Member:'badge-gray',
 };
 
 function toast(msg: string, type = 'success') {
